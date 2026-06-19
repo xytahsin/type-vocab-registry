@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.VocabRegistry" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#13241F</item>
+        <item name="android:windowBackground">#13241F</item>
+    </style>
+</resources>
