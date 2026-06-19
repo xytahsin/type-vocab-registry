@@ -20,7 +20,10 @@ object SessionComposer {
         return max(2, base + level.newCapDelta)   // adaptive intake
     }
 
-    fun unlockedTiers(words: List<Word>, axes: Map<Int, Map<Axis, AxisState>>, academicMode: Boolean): List<Int> {
+    fun unlockedTiers(
+        words: List<Word>, axes: Map<Int, Map<Axis, AxisState>>, academicMode: Boolean,
+        bcs: Boolean = false, bank: Boolean = false, scholar: Boolean = false,
+    ): List<Int> {
         fun pct(tier: Int): Double {
             val tw = words.filter { it.tier == tier }
             if (tw.isEmpty()) return 0.0
@@ -37,6 +40,10 @@ object SessionComposer {
         if (pct(1) >= 0.75) tiers += 2
         if (tiers.contains(2) && pct(2) >= 0.70) tiers += 3
         if (academicMode) tiers += 4
+        tiers += 5            // IBA exam words: always available
+        if (bcs) tiers += 6
+        if (bank) tiers += 7
+        if (scholar) tiers += 8
         return tiers
     }
 
@@ -50,6 +57,7 @@ object SessionComposer {
         newUsedToday: Int,
         academicMode: Boolean,
         capOverride: Int?,
+        bcs: Boolean = false, bank: Boolean = false, scholar: Boolean = false,
     ): List<SessionCard> {
         val budget = mode.budget
         val recogOnly = mode == SessionMode.COMMUTE
@@ -82,13 +90,25 @@ object SessionComposer {
             // ---- new words (25%, capped by adaptive daily intake) ----
             val cap = max(0, newDailyCap(daysToExam, level, capOverride) - newUsedToday)
             val newQuota = minOf(ceil(budget * 0.25).toInt(), cap)
+            // round-robin across unlocked tiers so IELTS core and IBA words both surface
+            val pools = unlockedTiers(words, axes, academicMode, bcs, bank, scholar).filter { it != 4 }
+                .associateWith { t -> words.filter { it.tier == t && !axes.containsKey(it.id) }.toMutableList() }
+            val order = pools.keys.toList()
             var added = 0
-            for (tier in unlockedTiers(words, axes, academicMode).filter { it != 4 }) {
-                for (w in words.filter { it.tier == tier }) {
+            var guard = 0
+            while (added < newQuota && guard < 10000) {
+                guard++
+                var progressed = false
+                for (t in order) {
                     if (added >= newQuota) break
-                    if (!axes.containsKey(w.id)) { push(w.id, Axis.R, CardKind.NEW, meet = true); added++ }
+                    val pool = pools[t]
+                    if (pool != null && pool.isNotEmpty()) {
+                        val w = pool.removeAt(0)
+                        if (push(w.id, Axis.R, CardKind.NEW, meet = true)) added++
+                        progressed = true
+                    }
                 }
-                if (added >= newQuota) break
+                if (!progressed) break
             }
             // ---- weak-axis drills (15%) ----
             if (!recogOnly) {

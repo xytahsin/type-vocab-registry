@@ -10,6 +10,8 @@ import com.tahsin.vocabregistry.domain.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import java.time.LocalDate
 
 private val Context.dataStore by preferencesDataStore("vocab_prefs")
@@ -31,6 +33,11 @@ object Keys {
     val EMA_C = doublePreferencesKey("ema_c")
     val EMA_R = doublePreferencesKey("ema_r")
     val HISTORY = stringPreferencesKey("readiness_history")   // "date:band;date:band"
+    val THEME_MODE = stringPreferencesKey("theme_mode")       // DARK | LIGHT | HIGH_CONTRAST
+    val TIER6 = booleanPreferencesKey("tier6_bcs")
+    val TIER7 = booleanPreferencesKey("tier7_bank")
+    val TIER8 = booleanPreferencesKey("tier8_academic")
+    val WOTD_DATE = stringPreferencesKey("wotd_date")
 }
 
 class VocabRepository private constructor(private val ctx: Context) {
@@ -100,6 +107,21 @@ class VocabRepository private constructor(private val ctx: Context) {
         }
     }
 
+    /** Deterministic word-of-the-day, drawn only from currently enabled tiers. */
+    suspend fun wordOfDay(): com.tahsin.vocabregistry.data.model.Word? {
+        val words = db.words().all()
+        val axes = axesMap()
+        val p = ctx.dataStore.data.first()
+        val unlocked = com.tahsin.vocabregistry.domain.SessionComposer.unlockedTiers(
+            words, axes, p[Keys.ACADEMIC] ?: false,
+            p[Keys.TIER6] ?: false, p[Keys.TIER7] ?: false, p[Keys.TIER8] ?: false,
+        ).toSet()
+        val pool = words.filter { it.tier in unlocked }.sortedBy { it.id }
+        if (pool.isEmpty()) return null
+        val idx = (java.time.LocalDate.now().toEpochDay().mod(pool.size.toLong())).toInt()
+        return pool[idx]
+    }
+
     suspend fun dailyHousekeeping() {
         val today = LocalDate.now()
         edit { p ->
@@ -114,6 +136,62 @@ class VocabRepository private constructor(private val ctx: Context) {
             if (p[Keys.NEW_TODAY_DATE] != today.toString()) { p[Keys.NEW_TODAY_DATE] = today.toString(); p[Keys.NEW_TODAY] = 0 }
         }
         applyDecayAll(System.currentTimeMillis())
+    }
+
+    // ---- portable backup / restore ----
+    suspend fun exportJson(): String {
+        val p = ctx.dataStore.data.first()
+        val axes = db.axes().all().map {
+            AxisDTO(it.wordId, it.axis.name, it.intervalDays, it.ease, it.reps, it.stability,
+                it.lastReviewEpoch, it.dueEpoch, it.status.name)
+        }
+        val logs = db.logs().recent(1500).map {
+            LogDTO(it.wordId, it.axis.name, it.epoch, it.quality, it.response, it.errorTags, it.provisional)
+        }
+        val backup = Backup(
+            exportedAt = System.currentTimeMillis(),
+            prefs = PrefsDTO(
+                examDate = p[Keys.EXAM_DATE] ?: "2027-02-15",
+                streak = p[Keys.STREAK] ?: 0, longest = p[Keys.LONGEST] ?: 0, lastStudy = p[Keys.LAST_STUDY],
+                freezes = p[Keys.FREEZES] ?: 2, freezeMonth = p[Keys.FREEZE_MONTH],
+                newToday = p[Keys.NEW_TODAY] ?: 0, newTodayDate = p[Keys.NEW_TODAY_DATE],
+                academic = p[Keys.ACADEMIC] ?: false, capOverride = p[Keys.CAP_OVERRIDE],
+                calibrated = p[Keys.CALIBRATED] ?: false,
+                emaP = p[Keys.EMA_P] ?: 0.0, emaC = p[Keys.EMA_C] ?: 0.0, emaR = p[Keys.EMA_R] ?: 0.0,
+                history = p[Keys.HISTORY] ?: "",
+                themeMode = p[Keys.THEME_MODE] ?: "DARK",
+                tier6 = p[Keys.TIER6] ?: false, tier7 = p[Keys.TIER7] ?: false, tier8 = p[Keys.TIER8] ?: false,
+            ),
+            axes = axes, logs = logs,
+        )
+        return json.encodeToString(backup)
+    }
+
+    suspend fun importJson(text: String) {
+        val backup = json.decodeFromString<Backup>(text)
+        db.axes().clearAll(); db.logs().clearAll()
+        db.axes().upsertAll(backup.axes.map {
+            AxisState(it.wordId, Axis.valueOf(it.axis), it.intervalDays, it.ease, it.reps, it.stability,
+                it.lastReviewEpoch, it.dueEpoch, AxisStatus.valueOf(it.status))
+        })
+        backup.logs.forEach {
+            db.logs().insert(ReviewLog(0, it.wordId, Axis.valueOf(it.axis), it.epoch, it.quality,
+                it.response, it.errorTags, it.provisional))
+        }
+        val pr = backup.prefs
+        ctx.dataStore.edit { p ->
+            p[Keys.EXAM_DATE] = pr.examDate
+            p[Keys.STREAK] = pr.streak; p[Keys.LONGEST] = pr.longest
+            pr.lastStudy?.let { p[Keys.LAST_STUDY] = it }
+            p[Keys.FREEZES] = pr.freezes; pr.freezeMonth?.let { p[Keys.FREEZE_MONTH] = it }
+            p[Keys.NEW_TODAY] = pr.newToday; pr.newTodayDate?.let { p[Keys.NEW_TODAY_DATE] = it }
+            p[Keys.ACADEMIC] = pr.academic; pr.capOverride?.let { p[Keys.CAP_OVERRIDE] = it }
+            p[Keys.CALIBRATED] = pr.calibrated
+            p[Keys.EMA_P] = pr.emaP; p[Keys.EMA_C] = pr.emaC; p[Keys.EMA_R] = pr.emaR
+            p[Keys.HISTORY] = pr.history
+            p[Keys.THEME_MODE] = pr.themeMode
+            p[Keys.TIER6] = pr.tier6; p[Keys.TIER7] = pr.tier7; p[Keys.TIER8] = pr.tier8
+        }
     }
 
     companion object {

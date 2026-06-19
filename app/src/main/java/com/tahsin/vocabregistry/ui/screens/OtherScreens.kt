@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -22,8 +23,12 @@ import com.tahsin.vocabregistry.data.model.*
 import com.tahsin.vocabregistry.domain.*
 import com.tahsin.vocabregistry.ui.AppViewModel
 import com.tahsin.vocabregistry.ui.theme.Ledger
+import com.tahsin.vocabregistry.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 /* ---------- CALIBRATION ---------- */
 @Composable
@@ -43,7 +48,7 @@ fun CalibrationScreen(vm: AppViewModel) {
     val word = words.getOrNull(idx)
     val cloze = remember(idx) { word?.let { buildCloze(it, ui.words, ProficiencyTracker.DistractorMode.RANDOM_POS) } }
 
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(20.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(20.dp).verticalScroll(rememberScrollState())) {
         Eyebrow("File opening · Calibration")
         Text("24 items. Choose the word that fits.", color = Ledger.Cream,
             fontSize = 22.sp, fontFamily = FontFamily.Serif)
@@ -55,7 +60,7 @@ fun CalibrationScreen(vm: AppViewModel) {
             PaperCard {
                 Chip(Ledger.tierName(word.tier), Ledger.tierColor(word.tier))
                 Spacer(Modifier.height(8.dp))
-                Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp)
+                Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp, color = Ledger.Ink)
                 Spacer(Modifier.height(12.dp))
                 fun answer(ok: Boolean) {
                     results += word.id to ok
@@ -64,7 +69,7 @@ fun CalibrationScreen(vm: AppViewModel) {
                 cloze.second.forEach { opt ->
                     OutlinedButton(onClick = { answer(opt == word.word) },
                         Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Ledger.Ink)) { Text(opt) }
+                        colors = inkOutlinedColors()) { Text(opt, color = Ledger.Ink) }
                 }
                 TextButton(onClick = { answer(false) }, Modifier.fillMaxWidth()) {
                     Text("Not sure / don't know", color = Ledger.InkSoft, fontFamily = FontFamily.Monospace)
@@ -83,11 +88,11 @@ fun CalibrationScreen(vm: AppViewModel) {
 fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
     val ui by vm.ui.collectAsState()
     LaunchedEffect(Unit) { vm.refresh() }
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).then(if (ui.themeMode == ThemeMode.DARK) Modifier.starrySky() else Modifier).padding(16.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Eyebrow("Daily docket")
-                Text("Vocabulary Registry", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
+                Text("Tahsincabs", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("${ui.streak}d", color = Ledger.Brass, fontSize = 22.sp,
@@ -121,6 +126,24 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
                     color = if (ui.dueCount > 0) Ledger.Stamp else Ledger.Green)
             }
         }
+        ui.wordOfDay?.let { w ->
+            Spacer(Modifier.height(10.dp))
+            PaperCard {
+                Eyebrow("Word of the day")
+                Text(w.word, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                Text("${w.pos} · ${Ledger.tierName(w.tier)}", fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp, color = Ledger.InkSoft)
+                Spacer(Modifier.height(4.dp))
+                Text(w.definition, fontSize = 14.sp)
+                Text("\u201C${w.example}\u201D", fontSize = 13.sp, fontStyle = FontStyle.Italic,
+                    fontFamily = FontFamily.Serif, color = Color(0xFF33507F),
+                    modifier = Modifier.padding(top = 4.dp))
+                w.confusable?.let {
+                    Text("\u26A0 $it", color = Ledger.Stamp, fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+        }
         Spacer(Modifier.height(12.dp))
         listOf(
             Triple(SessionMode.DEEP, "Deep session", "30 exposures · new words + grading"),
@@ -128,7 +151,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
             Triple(SessionMode.COMMUTE, "Commute", "20 recognition cards · no typing"),
         ).forEach { (mode, title, sub) ->
             Surface(onClick = { startSession(mode) }, color = if (mode == SessionMode.DEEP) Ledger.Paper else Color.Transparent,
-                shape = RoundedCornerShape(6.dp), border = androidx.compose.foundation.BorderStroke(1.dp,
+                shape = RoundedCornerShape(14.dp), border = androidx.compose.foundation.BorderStroke(1.dp,
                     if (mode == SessionMode.DEEP) Ledger.PaperEdge else Ledger.GreenSoft.copy(alpha = .35f)),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Column(Modifier.padding(14.dp)) {
@@ -146,7 +169,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
 @Composable
 fun ProgressScreen(vm: AppViewModel) {
     val ui by vm.ui.collectAsState()
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Eyebrow("Audit trail")
         Text("Progress", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(12.dp))
@@ -176,7 +199,7 @@ fun ProgressScreen(vm: AppViewModel) {
         Spacer(Modifier.height(10.dp))
         PaperCard {
             Text("Per-tier consolidation (R · P · C · G)", fontSize = 15.sp, fontFamily = FontFamily.Serif)
-            (1..4).forEach { t ->
+            (1..8).forEach { t ->
                 val tw = ui.words.filter { it.tier == t }
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(Ledger.tierName(t), fontSize = 10.sp, fontFamily = FontFamily.Monospace,
@@ -187,7 +210,7 @@ fun ProgressScreen(vm: AppViewModel) {
                         }
                         val pct = if (tw.isEmpty()) 0f else ok.toFloat() / tw.size
                         Box(Modifier.weight(1f).height(7.dp).padding(horizontal = 2.dp)
-                            .background(Color(0xFFE3D9BD), RoundedCornerShape(3.dp))) {
+                            .background(Color(0xFFD8E0F0), RoundedCornerShape(3.dp))) {
                             Box(Modifier.fillMaxWidth(pct).fillMaxHeight()
                                 .background(Ledger.tierColor(t), RoundedCornerShape(3.dp)))
                         }
@@ -210,7 +233,7 @@ fun BrowseScreen(vm: AppViewModel) {
             .filter { q.isBlank() || it.word.contains(q, true) || it.theme.contains(q, true) || it.definition.contains(q, true) }
             .take(100).toList()
     }
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(16.dp)) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp)) {
         Eyebrow("The registry")
         Text("${ui.words.size} entries", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         OutlinedTextField(value = q, onValueChange = { q = it }, Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -219,8 +242,8 @@ fun BrowseScreen(vm: AppViewModel) {
                 focusedTextColor = Ledger.Cream, unfocusedTextColor = Ledger.Cream,
                 focusedBorderColor = Ledger.Brass, unfocusedBorderColor = Ledger.GreenSoft,
                 cursorColor = Ledger.Brass))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            (0..4).forEach { t ->
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            (0..8).forEach { t ->
                 FilterChip(selected = tier == t, onClick = { tier = t },
                     label = { Text(if (t == 0) "All" else "T$t", fontFamily = FontFamily.Monospace, fontSize = 11.sp) })
             }
@@ -259,7 +282,7 @@ fun WritingScreen(vm: AppViewModel) {
     var result by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val wc = text.trim().split(Regex("\\s+")).count { it.isNotBlank() }
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Eyebrow("Writing desk")
         Text("Task 2 practice", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(10.dp))
@@ -317,9 +340,45 @@ fun SettingsScreen(vm: AppViewModel) {
     val ui by vm.ui.collectAsState()
     var exam by remember(ui.examDate) { mutableStateOf(ui.examDate) }
     var key by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(16.dp).verticalScroll(rememberScrollState())) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var backupMsg by remember { mutableStateOf<String?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                val data = vm.repo.exportJson()
+                ctx.contentResolver.openOutputStream(uri)?.use { it.write(data.toByteArray()) }
+                backupMsg = "Progress saved. Keep this file to restore on another phone."
+            } catch (e: Exception) { backupMsg = "Export failed: " + (e.message ?: "unknown error") }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                val text = ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                if (text != null) { vm.repo.importJson(text); vm.refresh(); backupMsg = "Progress restored." }
+                else backupMsg = "Could not read that file."
+            } catch (e: Exception) { backupMsg = "Import failed: " + (e.message ?: "unknown error") }
+        }
+    }
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Eyebrow("Office")
         Text("Settings", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Text("Appearance", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Light and high-contrast modes are easier to read in bright sunlight.",
+                fontSize = 12.sp, color = Ledger.InkSoft)
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(ThemeMode.DARK to "Dark", ThemeMode.LIGHT to "Light",
+                       ThemeMode.HIGH_CONTRAST to "High contrast").forEach { (m, label) ->
+                    FilterChip(selected = ui.themeMode == m, onClick = { vm.setThemeMode(m) },
+                        label = { Text(label, fontSize = 12.sp) })
+                }
+            }
+        }
         Spacer(Modifier.height(10.dp))
         PaperCard {
             Text("IELTS exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif)
@@ -353,6 +412,32 @@ fun SettingsScreen(vm: AppViewModel) {
                         fontSize = 12.sp, color = Ledger.InkSoft)
                 }
                 Switch(checked = ui.academicMode, onCheckedChange = { vm.setAcademic(it) })
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Text("Extra word sets", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Add these to your daily sessions. Off by default to keep IELTS focus; " +
+                "all of them stay searchable in the Registry regardless.",
+                fontSize = 12.sp, color = Ledger.InkSoft, lineHeight = 17.sp)
+            ToggleRow("BCS vocabulary (Tier 6)", ui.tier6) { vm.setTier6(it) }
+            ToggleRow("Bank-job prep (Tier 7)", ui.tier7) { vm.setTier7(it) }
+            ToggleRow("Academic / research (Tier 8)", ui.tier8) { vm.setTier8(it) }
+        }
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Text("Backup & restore", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Save all your progress \u2014 every word's memory, streaks, and level \u2014 to a file. " +
+                "Move it to a new phone and import to continue exactly where you left off.",
+                fontSize = 12.5.sp, color = Ledger.InkSoft, lineHeight = 18.sp)
+            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { exportLauncher.launch("tahsincabs_backup.json") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Export") }
+                OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    colors = inkOutlinedColors()) { Text("Import", color = Ledger.Ink) }
+            }
+            backupMsg?.let {
+                Text(it, fontSize = 12.sp, color = Ledger.Green, modifier = Modifier.padding(top = 8.dp))
             }
         }
         Spacer(Modifier.height(10.dp))

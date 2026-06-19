@@ -33,6 +33,7 @@ interface AxisDao {
     @Query("SELECT * FROM axis_states WHERE dueEpoch > 0 AND dueEpoch <= :now AND status != 'NEW'")
     suspend fun due(now: Long): List<AxisState>
     @Query("SELECT COUNT(DISTINCT wordId) FROM axis_states") suspend fun wordsInCirculation(): Int
+    @Query("DELETE FROM axis_states") suspend fun clearAll()
     @Query("SELECT * FROM axis_states ORDER BY wordId") fun watchAll(): Flow<List<AxisState>>
 }
 
@@ -44,6 +45,7 @@ interface LogDao {
     suspend fun recentForAxis(axis: Axis, n: Int): List<ReviewLog>
     @Query("DELETE FROM review_log WHERE id NOT IN (SELECT id FROM review_log ORDER BY epoch DESC LIMIT 2000)")
     suspend fun trim()
+    @Query("DELETE FROM review_log") suspend fun clearAll()
 }
 
 @Dao

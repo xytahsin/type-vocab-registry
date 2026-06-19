@@ -8,6 +8,7 @@ import com.tahsin.vocabregistry.data.VocabRepository
 import com.tahsin.vocabregistry.data.model.*
 import com.tahsin.vocabregistry.domain.*
 import com.tahsin.vocabregistry.grading.*
+import com.tahsin.vocabregistry.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -32,6 +33,9 @@ data class UiSnapshot(
     val history: List<Pair<String, Double>> = emptyList(),
     val apiKeySet: Boolean = false,
     val mastered: Int = 0,
+    val themeMode: ThemeMode = ThemeMode.DARK,
+    val tier6: Boolean = false, val tier7: Boolean = false, val tier8: Boolean = false,
+    val wordOfDay: Word? = null,
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -74,6 +78,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 .map { val (d, b) = it.split(":"); d to b.toDouble() },
             apiKeySet = !keyCache.isNullOrBlank(),
             mastered = mastered,
+            themeMode = runCatching { ThemeMode.valueOf(p[Keys.THEME_MODE] ?: "DARK") }.getOrDefault(ThemeMode.DARK),
+            tier6 = p[Keys.TIER6] ?: false, tier7 = p[Keys.TIER7] ?: false, tier8 = p[Keys.TIER8] ?: false,
+            wordOfDay = repo.wordOfDay(),
         )
     }
 
@@ -82,7 +89,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return SessionComposer.compose(
             mode, s.words, s.axes, System.currentTimeMillis(),
             s.daysToExam.toDouble(), s.proficiency.level, s.newToday,
-            s.academicMode, s.capOverride,
+            s.academicMode, s.capOverride, s.tier6, s.tier7, s.tier8,
         )
     }
 
@@ -150,6 +157,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setExamDate(d: String) = viewModelScope.launch { repo.edit { it[Keys.EXAM_DATE] = d }; refresh() }
     fun setAcademic(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.ACADEMIC] = b }; refresh() }
+    fun setThemeMode(m: ThemeMode) = viewModelScope.launch { repo.edit { it[Keys.THEME_MODE] = m.name }; refresh() }
+    fun setTier6(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER6] = b }; refresh() }
+    fun setTier7(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER7] = b }; refresh() }
+    fun setTier8(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER8] = b }; refresh() }
     fun setApiKey(k: String) = viewModelScope.launch {
         keyCache = k.ifBlank { null }
         repo.edit { it[Keys.API_KEY] = k }; refresh()

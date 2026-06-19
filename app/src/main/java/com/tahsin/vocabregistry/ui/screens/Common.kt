@@ -8,10 +8,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import kotlin.random.Random
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,11 +31,14 @@ fun PaperCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.()
     Column(
         modifier
             .fillMaxWidth()
-            .background(Ledger.Paper, RoundedCornerShape(6.dp))
-            .border(1.dp, Ledger.PaperEdge, RoundedCornerShape(6.dp))
+            .background(Ledger.Paper, RoundedCornerShape(14.dp))
+            .border(1.dp, Ledger.PaperEdge, RoundedCornerShape(14.dp))
             .padding(16.dp),
     ) {
-        CompositionLocalProvider(LocalContentColor provides Ledger.Ink) {
+        CompositionLocalProvider(
+            LocalContentColor provides Ledger.Ink,
+            LocalTextStyle provides LocalTextStyle.current.copy(color = Ledger.Ink),
+        ) {
             content()
         }
     }
@@ -99,6 +108,39 @@ fun inkFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Ledger.Ink, unfocusedTextColor = Ledger.Ink,
     focusedBorderColor = Ledger.Brass, unfocusedBorderColor = Ledger.PaperEdge,
     cursorColor = Ledger.Stamp,
-    focusedContainerColor = androidx.compose.ui.graphics.Color(0xFFFFFDF6),
-    unfocusedContainerColor = androidx.compose.ui.graphics.Color(0xFFFFFDF6),
+    focusedContainerColor = androidx.compose.ui.graphics.Color(0xFFEDF1FA),
+    unfocusedContainerColor = androidx.compose.ui.graphics.Color(0xFFEDF1FA),
 )
+
+@Composable
+fun inkOutlinedColors() = ButtonDefaults.outlinedButtonColors(
+    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+    contentColor = Ledger.Ink,
+    disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+    disabledContentColor = Ledger.Ink,
+)
+
+/** Scatters faint gold/white stars behind a composable, evoking the night sky. */
+fun Modifier.starrySky(seed: Int = 7, count: Int = 70): Modifier = this.drawBehind {
+    val r = Random(seed)
+    repeat(count) {
+        val x = r.nextFloat() * size.width
+        val y = r.nextFloat() * size.height
+        val rad = r.nextFloat() * 2.4f + 0.7f
+        val gold = r.nextFloat() < 0.55f
+        val color = if (gold) Color(0xFFE8C547) else Color(0xFFEDF1FB)
+        drawCircle(color.copy(alpha = r.nextFloat() * 0.5f + 0.18f), rad, Offset(x, y))
+    }
+}
+
+@Composable
+fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}

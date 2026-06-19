@@ -4,8 +4,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:name=".VocabApp"
-        android:label="Vocab Registry"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:label="Tahsincabs"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.VocabRegistry"
         android:allowBackup="true">
         <activity android:name=".MainActivity" android:exported="true">

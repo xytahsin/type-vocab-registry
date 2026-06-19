@@ -1,6 +1,9 @@
 package com.tahsin.vocabregistry.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -47,7 +50,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     fun finish() { vm.finishSession(); onClose() }
 
     if (cards.isEmpty()) {
-        Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(24.dp)) {
+        Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(24.dp)) {
             PaperCard {
                 Text("Nothing due right now", fontSize = 20.sp, fontFamily = FontFamily.Serif)
                 Text("The docket is clear. Run a Deep session to introduce new words.",
@@ -61,7 +64,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
         return
     }
     if (idx >= cards.size) {
-        Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(24.dp)) {
+        Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(24.dp)) {
             PaperCard {
                 Eyebrow("Session filed")
                 Text("$done items", fontSize = 32.sp, fontFamily = FontFamily.Serif)
@@ -91,7 +94,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     }
     fun next() { if (idx + 1 >= cards.size) idx = cards.size else idx++ }
 
-    Column(Modifier.fillMaxSize().background(Ledger.Bg).padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = ::finish) {
                 Text("← End session", color = Ledger.GreenSoft, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
@@ -99,12 +102,14 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
             Text("${idx + 1} / ${cards.size} · ${mode.name}", color = Ledger.GreenSoft,
                 fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         }
+        val animProgress by animateFloatAsState(
+            targetValue = idx.toFloat() / cards.size, animationSpec = tween(450), label = "progress")
         LinearProgressIndicator(
-            progress = { idx.toFloat() / cards.size },
+            progress = { animProgress },
             Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            color = Ledger.Brass, trackColor = Color(0xFF0D1A16),
+            color = Ledger.Brass, trackColor = Color(0xFF0A1430),
         )
-        PaperCard {
+        PaperCard(Modifier.animateContentSize()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Chip(Ledger.tierName(word.tier), Ledger.tierColor(word.tier))
                 Chip(if (phase is Phase.Meet) "NEW WORD" else card.axis.label.uppercase(), Ledger.InkSoft)
@@ -119,7 +124,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     Text(word.definition, fontSize = 15.sp)
                     Text("“${word.example}”", fontSize = 14.sp, fontStyle = FontStyle.Italic,
-                        fontFamily = FontFamily.Serif, color = Color(0xFF3D4434),
+                        fontFamily = FontFamily.Serif, color = Color(0xFF33507F),
                         modifier = Modifier.padding(vertical = 6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         word.collocationList.take(2).forEach { Chip(it, Ledger.Green) }
@@ -136,7 +141,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                 }
                 is Phase.Ask -> when (card.axis) {
                     Axis.R -> {
-                        Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp)
+                        Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp, color = Ledger.Ink)
                         Spacer(Modifier.height(12.dp))
                         cloze.second.forEach { opt ->
                             OutlinedButton(
@@ -148,8 +153,8 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                                     phase = Phase.ClozeFeedback(correct, false, q)
                                 },
                                 Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Ledger.Ink),
-                            ) { Text(opt) }
+                                colors = inkOutlinedColors(),
+                            ) { Text(opt, color = Ledger.Ink) }
                         }
                         TextButton(onClick = {
                             record(Axis.R, 1, "(not sure)", emptyList(), false)
@@ -229,7 +234,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                     Text("Compare against the file, then grade yourself honestly:",
                         fontSize = 13.sp, color = Ledger.InkSoft)
                     Text("“${word.example}”", fontSize = 14.sp, fontStyle = FontStyle.Italic,
-                        fontFamily = FontFamily.Serif, color = Color(0xFF3D4434),
+                        fontFamily = FontFamily.Serif, color = Color(0xFF33507F),
                         modifier = Modifier.padding(vertical = 6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         word.collocationList.take(3).forEach { Chip(it, Ledger.Green) }
@@ -249,8 +254,8 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                                 vm.applyReview(word.id, Axis.G, q, input, listOf("self_graded"), true)
                             phase = Phase.ClozeFeedback(correct = q >= 4, idk = false, q = q)
                         }, Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Ledger.Ink)) {
-                            Text("$label · $q/5")
+                            colors = inkOutlinedColors()) {
+                            Text("$label · $q/5", color = Ledger.Ink)
                         }
                     }
                 }
