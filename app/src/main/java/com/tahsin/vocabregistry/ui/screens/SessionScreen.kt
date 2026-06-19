@@ -165,7 +165,8 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                             fontSize = 13.sp, color = Ledger.InkSoft, modifier = Modifier.padding(vertical = 6.dp))
                         OutlinedTextField(value = input, onValueChange = { input = it },
                             Modifier.fillMaxWidth(), minLines = 3,
-                            placeholder = { Text("Your sentence…") })
+                            placeholder = { Text("Your sentence…", color = Ledger.InkSoft) },
+                            colors = inkFieldColors())
                         Spacer(Modifier.height(10.dp))
                         Button(
                             enabled = input.trim().split(Regex("\\s+")).size >= 4,
@@ -189,7 +190,8 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                         Text("Type a natural collocation using this word. (${word.definition})",
                             fontSize = 13.sp, color = Ledger.InkSoft, modifier = Modifier.padding(vertical = 6.dp))
                         OutlinedTextField(value = input, onValueChange = { input = it },
-                            Modifier.fillMaxWidth(), placeholder = { Text("partner word + the word") })
+                            Modifier.fillMaxWidth(), placeholder = { Text("partner word + the word", color = Ledger.InkSoft) },
+                            colors = inkFieldColors())
                         Spacer(Modifier.height(10.dp))
                         Button(
                             enabled = input.isNotBlank(),

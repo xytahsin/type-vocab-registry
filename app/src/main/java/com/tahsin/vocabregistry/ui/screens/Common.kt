@@ -5,6 +5,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -25,8 +28,11 @@ fun PaperCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.()
             .background(Ledger.Paper, RoundedCornerShape(6.dp))
             .border(1.dp, Ledger.PaperEdge, RoundedCornerShape(6.dp))
             .padding(16.dp),
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(LocalContentColor provides Ledger.Ink) {
+            content()
+        }
+    }
 }
 
 @Composable
@@ -87,3 +93,12 @@ fun buildCloze(word: Word, all: List<Word>, mode: ProficiencyTracker.DistractorM
     val picks = candidates.shuffled().distinctBy { it.word }.take(3).map { it.word }
     return sentence to (picks + word.word).shuffled()
 }
+
+@Composable
+fun inkFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Ledger.Ink, unfocusedTextColor = Ledger.Ink,
+    focusedBorderColor = Ledger.Brass, unfocusedBorderColor = Ledger.PaperEdge,
+    cursorColor = Ledger.Stamp,
+    focusedContainerColor = androidx.compose.ui.graphics.Color(0xFFFFFDF6),
+    unfocusedContainerColor = androidx.compose.ui.graphics.Color(0xFFFFFDF6),
+)

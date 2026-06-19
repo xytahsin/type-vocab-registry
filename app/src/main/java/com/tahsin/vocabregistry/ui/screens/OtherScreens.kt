@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -213,7 +214,11 @@ fun BrowseScreen(vm: AppViewModel) {
         Eyebrow("The registry")
         Text("${ui.words.size} entries", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         OutlinedTextField(value = q, onValueChange = { q = it }, Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            placeholder = { Text("Search word, theme, meaning…") })
+            placeholder = { Text("Search word, theme, meaning…", color = Ledger.GreenSoft) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Ledger.Cream, unfocusedTextColor = Ledger.Cream,
+                focusedBorderColor = Ledger.Brass, unfocusedBorderColor = Ledger.GreenSoft,
+                cursorColor = Ledger.Brass))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             (0..4).forEach { t ->
                 FilterChip(selected = tier == t, onClick = { tier = t },
@@ -264,7 +269,8 @@ fun WritingScreen(vm: AppViewModel) {
                 Text("different prompt", fontSize = 11.sp, color = Ledger.InkSoft, fontFamily = FontFamily.Monospace)
             }
             OutlinedTextField(value = text, onValueChange = { text = it }, Modifier.fillMaxWidth(),
-                minLines = 8, placeholder = { Text("150–200 words. Deploy your targets — the examiner is watching.") })
+                minLines = 8, placeholder = { Text("150–200 words. Deploy your targets — the examiner is watching.", color = Ledger.InkSoft) },
+                colors = inkFieldColors())
             Row(Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("$wc words", fontFamily = FontFamily.Monospace, fontSize = 11.sp,
@@ -319,7 +325,8 @@ fun SettingsScreen(vm: AppViewModel) {
             Text("IELTS exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif)
             Text("Drives the phase plan, intake, and tier weighting.", fontSize = 12.sp, color = Ledger.InkSoft)
             OutlinedTextField(value = exam, onValueChange = { exam = it },
-                placeholder = { Text("YYYY-MM-DD") }, modifier = Modifier.padding(top = 6.dp))
+                placeholder = { Text("YYYY-MM-DD", color = Ledger.InkSoft) },
+                colors = inkFieldColors(), modifier = Modifier.padding(top = 6.dp))
             Button(onClick = { vm.setExamDate(exam) }, Modifier.padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Save date") }
         }
@@ -331,7 +338,8 @@ fun SettingsScreen(vm: AppViewModel) {
                 "against the model example and rate yourself — free forever.",
                 fontSize = 12.sp, color = if (ui.apiKeySet) Ledger.Green else Ledger.InkSoft)
             OutlinedTextField(value = key, onValueChange = { key = it },
-                placeholder = { Text("sk-ant-…") }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+                placeholder = { Text("sk-ant-…", color = Ledger.InkSoft) },
+                colors = inkFieldColors(), modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
             Button(onClick = { vm.setApiKey(key); key = "" }, Modifier.padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Save key") }
         }
