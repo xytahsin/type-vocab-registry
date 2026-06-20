@@ -60,7 +60,7 @@ fun CalibrationScreen(vm: AppViewModel) {
             PaperCard {
                 Chip(Ledger.tierName(word.tier), Ledger.tierColor(word.tier))
                 Spacer(Modifier.height(8.dp))
-                Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp, color = Ledger.Ink)
+                Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp, color = Color(0xFF111726))
                 Spacer(Modifier.height(12.dp))
                 fun answer(ok: Boolean) {
                     results += word.id to ok
@@ -69,10 +69,10 @@ fun CalibrationScreen(vm: AppViewModel) {
                 cloze.second.forEach { opt ->
                     OutlinedButton(onClick = { answer(opt == word.word) },
                         Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                        colors = inkOutlinedColors()) { Text(opt, color = Ledger.Ink) }
+                        colors = inkOutlinedColors()) { Text(opt, color = Color(0xFF111726)) }
                 }
                 TextButton(onClick = { answer(false) }, Modifier.fillMaxWidth()) {
-                    Text("Not sure / don't know", color = Ledger.InkSoft, fontFamily = FontFamily.Monospace)
+                    Text("Not sure / don't know", color = Color(0xFF566077), fontFamily = FontFamily.Monospace)
                 }
             }
         }
@@ -92,7 +92,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Eyebrow("Daily docket")
-                Text("Tahsincabs", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
+                Text("Tahsin\u2019s Lexicon", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("${ui.streak}d", color = Ledger.Brass, fontSize = 22.sp,
@@ -108,7 +108,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
                     Text("Readiness ${ui.band}", color = Ledger.Stamp, fontSize = 26.sp,
                         fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
                     Text("IELTS in ${ui.daysToExam} days · ${ui.mastered} mastered · ${ui.axes.size} in circulation",
-                        fontSize = 12.sp, color = Ledger.InkSoft)
+                        fontSize = 12.sp, color = Color(0xFF566077))
                     Spacer(Modifier.height(6.dp))
                     // THE ADAPTIVE DIAL — visible so the learner knows the system is following them
                     Chip("Level: ${ui.proficiency.level.title} · graded at band ${ui.proficiency.level.graderBand}" +
@@ -132,7 +132,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
                 Eyebrow("Word of the day")
                 Text(w.word, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
                 Text("${w.pos} · ${Ledger.tierName(w.tier)}", fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp, color = Ledger.InkSoft)
+                    fontSize = 11.sp, color = Color(0xFF566077))
                 Spacer(Modifier.height(4.dp))
                 Text(w.definition, fontSize = 14.sp)
                 Text("\u201C${w.example}\u201D", fontSize = 13.sp, fontStyle = FontStyle.Italic,
@@ -150,15 +150,15 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
             Triple(SessionMode.SPRINT, "Sprint", "12 due items only · ~5 minutes"),
             Triple(SessionMode.COMMUTE, "Commute", "20 recognition cards · no typing"),
         ).forEach { (mode, title, sub) ->
-            Surface(onClick = { startSession(mode) }, color = if (mode == SessionMode.DEEP) Ledger.Paper else Color.Transparent,
+            Surface(onClick = { startSession(mode) }, color = if (mode == SessionMode.DEEP) Color(0xFFFFFFFF) else Color.Transparent,
                 shape = RoundedCornerShape(14.dp), border = androidx.compose.foundation.BorderStroke(1.dp,
-                    if (mode == SessionMode.DEEP) Ledger.PaperEdge else Ledger.GreenSoft.copy(alpha = .35f)),
+                    if (mode == SessionMode.DEEP) Color(0xFFD7DEEC) else Ledger.GreenSoft.copy(alpha = .35f)),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Column(Modifier.padding(14.dp)) {
                     Text(title, fontSize = 16.sp, fontFamily = FontFamily.Serif,
-                        color = if (mode == SessionMode.DEEP) Ledger.Ink else Ledger.Cream)
+                        color = if (mode == SessionMode.DEEP) Color(0xFF111726) else Ledger.Cream)
                     Text(sub, fontSize = 11.sp, fontFamily = FontFamily.Monospace,
-                        color = if (mode == SessionMode.DEEP) Ledger.InkSoft else Ledger.GreenSoft)
+                        color = if (mode == SessionMode.DEEP) Color(0xFF566077) else Ledger.GreenSoft)
                 }
             }
         }
@@ -182,7 +182,7 @@ fun ProgressScreen(vm: AppViewModel) {
                     Box(Modifier.weight(1f).fillMaxHeight(((b - 4.0) / 5.0).toFloat().coerceIn(0.05f, 1f))
                         .background(Ledger.Stamp, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)))
                 }
-                if (pts.isEmpty()) Text("No sessions yet.", fontSize = 12.sp, color = Ledger.InkSoft)
+                if (pts.isEmpty()) Text("No sessions yet.", fontSize = 12.sp, color = Color(0xFF566077))
             }
         }
         Spacer(Modifier.height(10.dp))
@@ -190,7 +190,7 @@ fun ProgressScreen(vm: AppViewModel) {
             Text("Proficiency engine", fontSize = 15.sp, fontFamily = FontFamily.Serif)
             val p = ui.proficiency
             Text("Production EMA ${(p.emaP * 100).toInt()}% · Collocation ${(p.emaC * 100).toInt()}% · Recognition ${(p.emaR * 100).toInt()}%",
-                fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = Ledger.InkSoft,
+                fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077),
                 modifier = Modifier.padding(top = 6.dp))
             Text("→ grader band ${p.level.graderBand} · intervals ×${p.level.intervalModifier} · intake ${if (p.level.newCapDelta >= 0) "+" else ""}${p.level.newCapDelta}/day",
                 fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = Ledger.Green,
@@ -203,7 +203,7 @@ fun ProgressScreen(vm: AppViewModel) {
                 val tw = ui.words.filter { it.tier == t }
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(Ledger.tierName(t), fontSize = 10.sp, fontFamily = FontFamily.Monospace,
-                        color = Ledger.InkSoft, modifier = Modifier.width(92.dp))
+                        color = Color(0xFF566077), modifier = Modifier.width(92.dp))
                     Axis.entries.forEach { k ->
                         val ok = tw.count { w ->
                             ui.axes[w.id]?.get(k)?.status in setOf(AxisStatus.REVIEW, AxisStatus.MASTERED)
@@ -253,7 +253,7 @@ fun BrowseScreen(vm: AppViewModel) {
             items(list, key = { it.id }) { w ->
                 PaperCard(Modifier.padding(vertical = 3.dp)) {
                     Text(w.word, fontSize = 16.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
-                    Text("${w.pos} · ${w.theme} — ${w.definition}", fontSize = 12.sp, color = Ledger.InkSoft)
+                    Text("${w.pos} · ${w.theme} — ${w.definition}", fontSize = 12.sp, color = Color(0xFF566077))
                     val st = ui.axes[w.id]
                     if (st != null) {
                         Text(Axis.entries.joinToString(" · ") { k ->
@@ -289,15 +289,15 @@ fun WritingScreen(vm: AppViewModel) {
         PaperCard {
             Text(prompt, fontSize = 14.sp, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic)
             TextButton(onClick = { prompt = T2_PROMPTS.random(); result = null }) {
-                Text("different prompt", fontSize = 11.sp, color = Ledger.InkSoft, fontFamily = FontFamily.Monospace)
+                Text("different prompt", fontSize = 11.sp, color = Color(0xFF566077), fontFamily = FontFamily.Monospace)
             }
             OutlinedTextField(value = text, onValueChange = { text = it }, Modifier.fillMaxWidth(),
-                minLines = 8, placeholder = { Text("150–200 words. Deploy your targets — the examiner is watching.", color = Ledger.InkSoft) },
+                minLines = 8, placeholder = { Text("150–200 words. Deploy your targets — the examiner is watching.", color = Color(0xFF566077)) },
                 colors = inkFieldColors())
             Row(Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("$wc words", fontFamily = FontFamily.Monospace, fontSize = 11.sp,
-                    color = if (wc >= 150) Ledger.Green else Ledger.InkSoft)
+                    color = if (wc >= 150) Ledger.Green else Color(0xFF566077))
                 Button(enabled = !busy && wc >= 80, onClick = {
                     busy = true; result = null
                     scope.launch {
@@ -370,7 +370,7 @@ fun SettingsScreen(vm: AppViewModel) {
         PaperCard {
             Text("Appearance", fontSize = 15.sp, fontFamily = FontFamily.Serif)
             Text("Light and high-contrast modes are easier to read in bright sunlight.",
-                fontSize = 12.sp, color = Ledger.InkSoft)
+                fontSize = 12.sp, color = Color(0xFF566077))
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(ThemeMode.DARK to "Dark", ThemeMode.LIGHT to "Light",
                        ThemeMode.HIGH_CONTRAST to "High contrast").forEach { (m, label) ->
@@ -382,9 +382,9 @@ fun SettingsScreen(vm: AppViewModel) {
         Spacer(Modifier.height(10.dp))
         PaperCard {
             Text("IELTS exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif)
-            Text("Drives the phase plan, intake, and tier weighting.", fontSize = 12.sp, color = Ledger.InkSoft)
+            Text("Drives the phase plan, intake, and tier weighting.", fontSize = 12.sp, color = Color(0xFF566077))
             OutlinedTextField(value = exam, onValueChange = { exam = it },
-                placeholder = { Text("YYYY-MM-DD", color = Ledger.InkSoft) },
+                placeholder = { Text("YYYY-MM-DD", color = Color(0xFF566077)) },
                 colors = inkFieldColors(), modifier = Modifier.padding(top = 6.dp))
             Button(onClick = { vm.setExamDate(exam) }, Modifier.padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Save date") }
@@ -395,9 +395,9 @@ fun SettingsScreen(vm: AppViewModel) {
             Text(if (ui.apiKeySet) "Key saved. LLM grading is live." else
                 "Optional. Without a key the app uses self-grading: you compare your sentence " +
                 "against the model example and rate yourself — free forever.",
-                fontSize = 12.sp, color = if (ui.apiKeySet) Ledger.Green else Ledger.InkSoft)
+                fontSize = 12.sp, color = if (ui.apiKeySet) Ledger.Green else Color(0xFF566077))
             OutlinedTextField(value = key, onValueChange = { key = it },
-                placeholder = { Text("sk-ant-…", color = Ledger.InkSoft) },
+                placeholder = { Text("sk-ant-…", color = Color(0xFF566077)) },
                 colors = inkFieldColors(), modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
             Button(onClick = { vm.setApiKey(key); key = "" }, Modifier.padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Save key") }
@@ -409,7 +409,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 Column(Modifier.weight(1f)) {
                     Text("Academic mode (Tier 4)", fontSize = 15.sp, fontFamily = FontFamily.Serif)
                     Text("C2 research vocabulary in sessions and the Writing examiner.",
-                        fontSize = 12.sp, color = Ledger.InkSoft)
+                        fontSize = 12.sp, color = Color(0xFF566077))
                 }
                 Switch(checked = ui.academicMode, onCheckedChange = { vm.setAcademic(it) })
             }
@@ -419,7 +419,7 @@ fun SettingsScreen(vm: AppViewModel) {
             Text("Extra word sets", fontSize = 15.sp, fontFamily = FontFamily.Serif)
             Text("Add these to your daily sessions. Off by default to keep IELTS focus; " +
                 "all of them stay searchable in the Registry regardless.",
-                fontSize = 12.sp, color = Ledger.InkSoft, lineHeight = 17.sp)
+                fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
             ToggleRow("BCS vocabulary (Tier 6)", ui.tier6) { vm.setTier6(it) }
             ToggleRow("Bank-job prep (Tier 7)", ui.tier7) { vm.setTier7(it) }
             ToggleRow("Academic / research (Tier 8)", ui.tier8) { vm.setTier8(it) }
@@ -429,12 +429,12 @@ fun SettingsScreen(vm: AppViewModel) {
             Text("Backup & restore", fontSize = 15.sp, fontFamily = FontFamily.Serif)
             Text("Save all your progress \u2014 every word's memory, streaks, and level \u2014 to a file. " +
                 "Move it to a new phone and import to continue exactly where you left off.",
-                fontSize = 12.5.sp, color = Ledger.InkSoft, lineHeight = 18.sp)
+                fontSize = 12.5.sp, color = Color(0xFF566077), lineHeight = 18.sp)
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { exportLauncher.launch("tahsincabs_backup.json") },
                     colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Export") }
                 OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                    colors = inkOutlinedColors()) { Text("Import", color = Ledger.Ink) }
+                    colors = inkOutlinedColors()) { Text("Import", color = Color(0xFF111726)) }
             }
             backupMsg?.let {
                 Text(it, fontSize = 12.sp, color = Ledger.Green, modifier = Modifier.padding(top = 8.dp))
@@ -446,7 +446,7 @@ fun SettingsScreen(vm: AppViewModel) {
             Text("Level ${ui.proficiency.level.title}. The grader band, review intervals, daily intake, " +
                 "and distractor difficulty retune automatically from your rolling performance — " +
                 "stricter as you improve, gentler the moment you slump.",
-                fontSize = 12.5.sp, color = Ledger.InkSoft, lineHeight = 18.sp)
+                fontSize = 12.5.sp, color = Color(0xFF566077), lineHeight = 18.sp)
         }
     }
 }

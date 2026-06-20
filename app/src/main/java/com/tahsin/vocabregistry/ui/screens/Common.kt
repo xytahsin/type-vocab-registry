@@ -2,6 +2,7 @@ package com.tahsin.vocabregistry.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -31,13 +32,13 @@ fun PaperCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.()
     Column(
         modifier
             .fillMaxWidth()
-            .background(Ledger.Paper, RoundedCornerShape(14.dp))
-            .border(1.dp, Ledger.PaperEdge, RoundedCornerShape(14.dp))
+            .background(Color(0xFFFFFFFF), RoundedCornerShape(14.dp))
+            .border(1.dp, Color(0xFFD7DEEC), RoundedCornerShape(14.dp))
             .padding(16.dp),
     ) {
         CompositionLocalProvider(
-            LocalContentColor provides Ledger.Ink,
-            LocalTextStyle provides LocalTextStyle.current.copy(color = Ledger.Ink),
+            LocalContentColor provides Color(0xFF111726),
+            LocalTextStyle provides LocalTextStyle.current.copy(color = Color(0xFF111726)),
         ) {
             content()
         }
@@ -105,8 +106,8 @@ fun buildCloze(word: Word, all: List<Word>, mode: ProficiencyTracker.DistractorM
 
 @Composable
 fun inkFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = Ledger.Ink, unfocusedTextColor = Ledger.Ink,
-    focusedBorderColor = Ledger.Brass, unfocusedBorderColor = Ledger.PaperEdge,
+    focusedTextColor = Color(0xFF111726), unfocusedTextColor = Color(0xFF111726),
+    focusedBorderColor = Ledger.Brass, unfocusedBorderColor = Color(0xFFD7DEEC),
     cursorColor = Ledger.Stamp,
     focusedContainerColor = androidx.compose.ui.graphics.Color(0xFFEDF1FA),
     unfocusedContainerColor = androidx.compose.ui.graphics.Color(0xFFEDF1FA),
@@ -115,9 +116,9 @@ fun inkFieldColors() = OutlinedTextFieldDefaults.colors(
 @Composable
 fun inkOutlinedColors() = ButtonDefaults.outlinedButtonColors(
     containerColor = androidx.compose.ui.graphics.Color.Transparent,
-    contentColor = Ledger.Ink,
+    contentColor = Color(0xFF111726),
     disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-    disabledContentColor = Ledger.Ink,
+    disabledContentColor = Color(0xFF111726),
 )
 
 /** Scatters faint gold/white stars behind a composable, evoking the night sky. */
@@ -142,5 +143,23 @@ fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     ) {
         Text(label, fontSize = 14.sp, modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+/** Answer option as a plain clickable box. No Material Button = no content-alpha state
+ *  machine can ever fade the label. Card backgrounds are light in every theme, so the
+ *  dark ink text is always high-contrast. */
+@Composable
+fun OptionButton(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .border(1.5.dp, Color(0xFFD7DEEC), RoundedCornerShape(28.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 15.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = Color(0xFF111726), fontSize = 15.sp, fontWeight = FontWeight.Medium)
     }
 }
