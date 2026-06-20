@@ -6,10 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,12 +33,7 @@ fun PaperCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.()
             .border(1.dp, Color(0xFFD7DEEC), RoundedCornerShape(14.dp))
             .padding(16.dp),
     ) {
-        CompositionLocalProvider(
-            LocalContentColor provides Color(0xFF111726),
-            LocalTextStyle provides LocalTextStyle.current.copy(color = Color(0xFF111726)),
-        ) {
-            content()
-        }
+        content()
     }
 }
 
@@ -141,7 +133,7 @@ fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Text(label, fontSize = 14.sp, color = Color(0xFF111726), modifier = Modifier.weight(1f))
         Switch(checked = checked, onCheckedChange = onChange)
     }
 }

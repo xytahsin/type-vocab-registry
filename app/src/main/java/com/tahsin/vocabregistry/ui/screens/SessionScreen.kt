@@ -52,7 +52,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     if (cards.isEmpty()) {
         Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(24.dp)) {
             PaperCard {
-                Text("Nothing due right now", fontSize = 20.sp, fontFamily = FontFamily.Serif)
+                Text("Nothing due right now", fontSize = 20.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                 Text("The docket is clear. Run a Deep session to introduce new words.",
                     fontSize = 13.sp, color = Color(0xFF566077))
                 Spacer(Modifier.height(12.dp))
@@ -67,7 +67,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
         Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(24.dp)) {
             PaperCard {
                 Eyebrow("Session filed")
-                Text("$done items", fontSize = 32.sp, fontFamily = FontFamily.Serif)
+                Text("$done items", fontSize = 32.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                 Text("avg quality ${if (done > 0) "%.1f".format(qSum.toDouble() / done) else "—"} / 5 · grading band ${ui.proficiency.level.graderBand}",
                     fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = Color(0xFF566077))
                 Spacer(Modifier.height(12.dp))
@@ -109,7 +109,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
             Modifier.fillMaxWidth().padding(vertical = 10.dp),
             color = Ledger.Brass, trackColor = Color(0xFF0A1430),
         )
-        PaperCard(Modifier.animateContentSize()) {
+        PaperCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Chip(Ledger.tierName(word.tier), Ledger.tierColor(word.tier))
                 Chip(if (phase is Phase.Meet) "NEW WORD" else card.axis.label.uppercase(), Color(0xFF566077))
@@ -118,11 +118,11 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
 
             when (val ph = phase) {
                 is Phase.Meet -> {
-                    Text(word.word, fontSize = 28.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                    Text(word.word, fontSize = 28.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                     Text("${word.pos} · ${word.theme}", fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp, color = Color(0xFF566077))
                     Spacer(Modifier.height(8.dp))
-                    Text(word.definition, fontSize = 15.sp)
+                    Text(word.definition, fontSize = 15.sp, color = Color(0xFF111726))
                     Text("“${word.example}”", fontSize = 14.sp, fontStyle = FontStyle.Italic,
                         fontFamily = FontFamily.Serif, color = Color(0xFF33507F),
                         modifier = Modifier.padding(vertical = 6.dp))
@@ -144,17 +144,13 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                         Text(cloze.first, fontSize = 17.sp, fontFamily = FontFamily.Serif, lineHeight = 26.sp, color = Color(0xFF111726))
                         Spacer(Modifier.height(12.dp))
                         cloze.second.forEach { opt ->
-                            OutlinedButton(
-                                onClick = {
-                                    val correct = opt == word.word
-                                    val slow = System.currentTimeMillis() - startMs > 15_000
-                                    val q = if (correct) (if (slow) 3 else 5) else 1
-                                    record(Axis.R, q, opt, emptyList(), false)
-                                    phase = Phase.ClozeFeedback(correct, false, q)
-                                },
-                                Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                                colors = inkOutlinedColors(),
-                            ) { Text(opt, color = Color(0xFF111726)) }
+                            OptionButton(opt) {
+                                val correct = opt == word.word
+                                val slow = System.currentTimeMillis() - startMs > 15_000
+                                val q = if (correct) (if (slow) 3 else 5) else 1
+                                record(Axis.R, q, opt, emptyList(), false)
+                                phase = Phase.ClozeFeedback(correct, false, q)
+                            }
                         }
                         TextButton(onClick = {
                             record(Axis.R, 1, "(not sure)", emptyList(), false)
@@ -164,7 +160,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                         }
                     }
                     Axis.P, Axis.G -> {
-                        Text(word.word, fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                        Text(word.word, fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                         Text("Write one academic sentence using this word." +
                             if (card.axis == Axis.G) " Register is being graded." else "",
                             fontSize = 13.sp, color = Color(0xFF566077), modifier = Modifier.padding(vertical = 6.dp))
@@ -191,7 +187,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                         ) { Text("Submit for grading") }
                     }
                     Axis.C -> {
-                        Text(word.word, fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                        Text(word.word, fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                         Text("Type a natural collocation using this word. (${word.definition})",
                             fontSize = 13.sp, color = Color(0xFF566077), modifier = Modifier.padding(vertical = 6.dp))
                         OutlinedTextField(value = input, onValueChange = { input = it },
@@ -243,19 +239,16 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                         Text("⚠ $it", color = Ledger.Stamp, fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
                     }
-                    Text("Your answer: ${input.trim()}", fontSize = 13.sp,
+                    Text("Your answer: ${input.trim()}", fontSize = 13.sp, color = Color(0xFF111726),
                         modifier = Modifier.padding(top = 8.dp))
                     Spacer(Modifier.height(10.dp))
                     val axis = (phase as Phase.SelfGrade).axis
                     listOf(1 to "Missed it", 3 to "Shaky", 4 to "Good", 5 to "Precise").forEach { (q, label) ->
-                        OutlinedButton(onClick = {
+                        OptionButton("$label · $q/5") {
                             record(axis, q, input, listOf("self_graded"), true)
                             if (axis == Axis.P)
                                 vm.applyReview(word.id, Axis.G, q, input, listOf("self_graded"), true)
                             phase = Phase.ClozeFeedback(correct = q >= 4, idk = false, q = q)
-                        }, Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                            colors = inkOutlinedColors()) {
-                            Text("$label · $q/5", color = Color(0xFF111726))
                         }
                     }
                 }
@@ -265,7 +258,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                     GradeStamp(ph.q, if (ph.idk) "Noted" else if (ph.correct && ph.q == 3) "Slow pass" else null)
                     if (!ph.correct) {
                         Text("Correct: ${word.word} — ${word.definition}",
-                            fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+                            fontSize = 14.sp, color = Color(0xFF111726), modifier = Modifier.padding(top = 10.dp))
                         word.confusable?.let {
                             Text("⚠ $it", color = Ledger.Stamp, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
                         }
@@ -285,7 +278,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                         }
                     }
                     if (ph.g.explanation.isNotBlank())
-                        Text(ph.g.explanation, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+                        Text(ph.g.explanation, fontSize = 14.sp, color = Color(0xFF111726), modifier = Modifier.padding(top = 10.dp))
                     ph.g.correction?.let {
                         Text("✎ $it", fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic,
                             color = Ledger.Green, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
@@ -297,7 +290,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                 }
                 is Phase.CollFeedback -> {
                     GradeStamp(ph.q)
-                    Text(ph.g.explanation, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+                    Text(ph.g.explanation, fontSize = 14.sp, color = Color(0xFF111726), modifier = Modifier.padding(top = 10.dp))
                     ph.g.betterOption?.let {
                         Text("✎ Stronger: $it", fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic,
                             color = Ledger.Green, fontSize = 14.sp)

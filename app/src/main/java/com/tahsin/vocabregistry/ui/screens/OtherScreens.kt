@@ -23,7 +23,6 @@ import com.tahsin.vocabregistry.data.model.*
 import com.tahsin.vocabregistry.domain.*
 import com.tahsin.vocabregistry.ui.AppViewModel
 import com.tahsin.vocabregistry.ui.theme.Ledger
-import com.tahsin.vocabregistry.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
 import androidx.compose.ui.platform.LocalContext
@@ -67,9 +66,7 @@ fun CalibrationScreen(vm: AppViewModel) {
                     if (idx + 1 >= words.size) vm.seedCalibration(results) else idx++
                 }
                 cloze.second.forEach { opt ->
-                    OutlinedButton(onClick = { answer(opt == word.word) },
-                        Modifier.fillMaxWidth().padding(vertical = 3.dp),
-                        colors = inkOutlinedColors()) { Text(opt, color = Color(0xFF111726)) }
+                    OptionButton(opt) { answer(opt == word.word) }
                 }
                 TextButton(onClick = { answer(false) }, Modifier.fillMaxWidth()) {
                     Text("Not sure / don't know", color = Color(0xFF566077), fontFamily = FontFamily.Monospace)
@@ -88,7 +85,7 @@ fun CalibrationScreen(vm: AppViewModel) {
 fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
     val ui by vm.ui.collectAsState()
     LaunchedEffect(Unit) { vm.refresh() }
-    Column(Modifier.fillMaxSize().background(Ledger.nightSky).then(if (ui.themeMode == ThemeMode.DARK) Modifier.starrySky() else Modifier).padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Eyebrow("Daily docket")
@@ -120,7 +117,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
         Spacer(Modifier.height(10.dp))
         PaperCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Due for review", fontSize = 16.sp, fontFamily = FontFamily.Serif)
+                Text("Due for review", fontSize = 16.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                 Text("${ui.dueCount}", fontSize = 22.sp, fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     color = if (ui.dueCount > 0) Ledger.Stamp else Ledger.Green)
@@ -130,11 +127,11 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
             Spacer(Modifier.height(10.dp))
             PaperCard {
                 Eyebrow("Word of the day")
-                Text(w.word, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
+                Text(w.word, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                 Text("${w.pos} · ${Ledger.tierName(w.tier)}", fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp, color = Color(0xFF566077))
                 Spacer(Modifier.height(4.dp))
-                Text(w.definition, fontSize = 14.sp)
+                Text(w.definition, fontSize = 14.sp, color = Color(0xFF111726))
                 Text("\u201C${w.example}\u201D", fontSize = 13.sp, fontStyle = FontStyle.Italic,
                     fontFamily = FontFamily.Serif, color = Color(0xFF33507F),
                     modifier = Modifier.padding(top = 4.dp))
@@ -174,7 +171,7 @@ fun ProgressScreen(vm: AppViewModel) {
         Text("Progress", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(12.dp))
         PaperCard {
-            Text("Readiness trend", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Readiness trend", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             val pts = ui.history.takeLast(30)
             Row(Modifier.fillMaxWidth().height(70.dp).padding(top = 8.dp),
                 verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -187,7 +184,7 @@ fun ProgressScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Proficiency engine", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Proficiency engine", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             val p = ui.proficiency
             Text("Production EMA ${(p.emaP * 100).toInt()}% · Collocation ${(p.emaC * 100).toInt()}% · Recognition ${(p.emaR * 100).toInt()}%",
                 fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077),
@@ -198,7 +195,7 @@ fun ProgressScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Per-tier consolidation (R · P · C · G)", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Per-tier consolidation (R · P · C · G)", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             (1..8).forEach { t ->
                 val tw = ui.words.filter { it.tier == t }
                 Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -252,7 +249,7 @@ fun BrowseScreen(vm: AppViewModel) {
         LazyColumn {
             items(list, key = { it.id }) { w ->
                 PaperCard(Modifier.padding(vertical = 3.dp)) {
-                    Text(w.word, fontSize = 16.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
+                    Text(w.word, fontSize = 16.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, color = Color(0xFF111726))
                     Text("${w.pos} · ${w.theme} — ${w.definition}", fontSize = 12.sp, color = Color(0xFF566077))
                     val st = ui.axes[w.id]
                     if (st != null) {
@@ -287,7 +284,7 @@ fun WritingScreen(vm: AppViewModel) {
         Text("Task 2 practice", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text(prompt, fontSize = 14.sp, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic)
+            Text(prompt, fontSize = 14.sp, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, color = Color(0xFF111726))
             TextButton(onClick = { prompt = T2_PROMPTS.random(); result = null }) {
                 Text("different prompt", fontSize = 11.sp, color = Color(0xFF566077), fontFamily = FontFamily.Monospace)
             }
@@ -328,7 +325,7 @@ fun WritingScreen(vm: AppViewModel) {
                         o["topFix"]?.jsonPrimitive?.content?.let { appendLine("✎ $it") }
                     }
                 }.getOrElse { raw }
-                Text(pretty, fontSize = 13.sp, lineHeight = 20.sp)
+                Text(pretty, fontSize = 13.sp, lineHeight = 20.sp, color = Color(0xFF111726))
             }
         }
     }
@@ -368,20 +365,7 @@ fun SettingsScreen(vm: AppViewModel) {
         Text("Settings", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Appearance", fontSize = 15.sp, fontFamily = FontFamily.Serif)
-            Text("Light and high-contrast modes are easier to read in bright sunlight.",
-                fontSize = 12.sp, color = Color(0xFF566077))
-            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(ThemeMode.DARK to "Dark", ThemeMode.LIGHT to "Light",
-                       ThemeMode.HIGH_CONTRAST to "High contrast").forEach { (m, label) ->
-                    FilterChip(selected = ui.themeMode == m, onClick = { vm.setThemeMode(m) },
-                        label = { Text(label, fontSize = 12.sp) })
-                }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        PaperCard {
-            Text("IELTS exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("IELTS exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text("Drives the phase plan, intake, and tier weighting.", fontSize = 12.sp, color = Color(0xFF566077))
             OutlinedTextField(value = exam, onValueChange = { exam = it },
                 placeholder = { Text("YYYY-MM-DD", color = Color(0xFF566077)) },
@@ -391,7 +375,7 @@ fun SettingsScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Anthropic API key", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Anthropic API key", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text(if (ui.apiKeySet) "Key saved. LLM grading is live." else
                 "Optional. Without a key the app uses self-grading: you compare your sentence " +
                 "against the model example and rate yourself — free forever.",
@@ -407,7 +391,7 @@ fun SettingsScreen(vm: AppViewModel) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Academic mode (Tier 4)", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+                    Text("Academic mode (Tier 4)", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
                     Text("C2 research vocabulary in sessions and the Writing examiner.",
                         fontSize = 12.sp, color = Color(0xFF566077))
                 }
@@ -416,7 +400,7 @@ fun SettingsScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Extra word sets", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Extra word sets", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text("Add these to your daily sessions. Off by default to keep IELTS focus; " +
                 "all of them stay searchable in the Registry regardless.",
                 fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
@@ -426,15 +410,15 @@ fun SettingsScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Backup & restore", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Backup & restore", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text("Save all your progress \u2014 every word's memory, streaks, and level \u2014 to a file. " +
                 "Move it to a new phone and import to continue exactly where you left off.",
                 fontSize = 12.5.sp, color = Color(0xFF566077), lineHeight = 18.sp)
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { exportLauncher.launch("tahsincabs_backup.json") },
                     colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Export") }
-                OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                    colors = inkOutlinedColors()) { Text("Import", color = Color(0xFF111726)) }
+                Button(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Ledger.Green)) { Text("Import") }
             }
             backupMsg?.let {
                 Text(it, fontSize = 12.sp, color = Ledger.Green, modifier = Modifier.padding(top = 8.dp))
@@ -442,7 +426,7 @@ fun SettingsScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("Adaptive engine", fontSize = 15.sp, fontFamily = FontFamily.Serif)
+            Text("Adaptive engine", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text("Level ${ui.proficiency.level.title}. The grader band, review intervals, daily intake, " +
                 "and distractor difficulty retune automatically from your rolling performance — " +
                 "stricter as you improve, gentler the moment you slump.",
