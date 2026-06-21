@@ -36,6 +36,7 @@ data class UiSnapshot(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val tier6: Boolean = false, val tier7: Boolean = false, val tier8: Boolean = false,
     val wordOfDay: Word? = null,
+    val reviewsToday: Int = 0,
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -60,6 +61,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val mastered = axes.count { (_, m) ->
             Axis.entries.all { k -> m[k]?.status == AxisStatus.MASTERED }
         }
+        val startToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant().toEpochMilli()
+        val reviewsToday = repo.db.logs().recent(1500).count { it.epoch >= startToday }
         _ui.value = UiSnapshot(
             loading = false,
             calibrated = p[Keys.CALIBRATED] ?: false,
@@ -81,6 +85,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             themeMode = runCatching { ThemeMode.valueOf(p[Keys.THEME_MODE] ?: "DARK") }.getOrDefault(ThemeMode.DARK),
             tier6 = p[Keys.TIER6] ?: false, tier7 = p[Keys.TIER7] ?: false, tier8 = p[Keys.TIER8] ?: false,
             wordOfDay = repo.wordOfDay(),
+            reviewsToday = reviewsToday,
         )
     }
 

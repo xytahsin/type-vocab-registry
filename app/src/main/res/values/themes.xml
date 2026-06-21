@@ -2,5 +2,8 @@
     <style name="Theme.VocabRegistry" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">#0C1838</item>
         <item name="android:windowBackground">#0C1838</item>
+        <!-- Stop the system (incl. MIUI "Dark mode for all apps") from re-darkening
+             our colors. We render our own fixed dark theme; force-dark must not touch it. -->
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -46,6 +47,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     var qSum by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val dMode = ProficiencyTracker.distractorMode(ui.proficiency.level)
+    val speak = rememberSpeaker()
 
     fun finish() { vm.finishSession(); onClose() }
 
@@ -75,6 +77,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                     Text("Back to docket")
                 }
             }
+            SessionQuote()
         }
         return
     }
@@ -118,7 +121,10 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
 
             when (val ph = phase) {
                 is Phase.Meet -> {
-                    Text(word.word, fontSize = 28.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(word.word, fontSize = 28.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                        SpeakerButton(word.word, speak)
+                    }
                     Text("${word.pos} · ${word.theme}", fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp, color = Color(0xFF566077))
                     Spacer(Modifier.height(8.dp))

@@ -85,6 +85,7 @@ fun CalibrationScreen(vm: AppViewModel) {
 fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
     val ui by vm.ui.collectAsState()
     LaunchedEffect(Unit) { vm.refresh() }
+    val speak = rememberSpeaker()
     Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
@@ -99,6 +100,12 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
             }
         }
         Spacer(Modifier.height(14.dp))
+        ExamHeroCard(ui)
+        Spacer(Modifier.height(10.dp))
+        StreakGoalCard(ui)
+        Spacer(Modifier.height(10.dp))
+        RankBadgesCard(ui)
+        Spacer(Modifier.height(10.dp))
         PaperCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -127,7 +134,10 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
             Spacer(Modifier.height(10.dp))
             PaperCard {
                 Eyebrow("Word of the day")
-                Text(w.word, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(w.word, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                    SpeakerButton(w.word, speak)
+                }
                 Text("${w.pos} · ${Ledger.tierName(w.tier)}", fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp, color = Color(0xFF566077))
                 Spacer(Modifier.height(4.dp))
