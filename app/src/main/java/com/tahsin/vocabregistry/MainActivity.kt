@@ -34,10 +34,7 @@ fun Root(vm: AppViewModel) {
     val ui by vm.ui.collectAsState()
     VocabTheme(ui.themeMode) {
         when {
-            ui.loading -> Box(
-                Modifier.fillMaxSize().background(Ledger.nightSky),
-                contentAlignment = Alignment.Center,
-            ) { Text("Opening the ledger…", color = Ledger.Cream, fontFamily = FontFamily.Monospace) }
+            ui.loading -> StarryLoader()
 
             !ui.calibrated -> CalibrationScreen(vm)
 

@@ -48,6 +48,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
     val dMode = ProficiencyTracker.distractorMode(ui.proficiency.level)
     val speak = rememberSpeaker()
+    val sounds = rememberSounds()
 
     fun finish() { vm.finishSession(); onClose() }
 
@@ -67,6 +68,7 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     }
     if (idx >= cards.size) {
         Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(24.dp)) {
+            LaunchedEffect(Unit) { if (ui.soundEveryCorrect || ui.soundPrecise) sounds.play("filed") }
             PaperCard {
                 Eyebrow("Session filed")
                 Text("$done items", fontSize = 32.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
@@ -84,7 +86,13 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
 
     val card = cards[idx]
     val word = ui.words.firstOrNull { it.id == card.wordId } ?: return
-    val cloze = remember(idx) { buildCloze(word, ui.words, dMode) }
+    val cloze = remember(idx) {
+        val stem = word.word.split(" ")[0]
+        val testEx = ui.rich[word.id]?.examples?.drop(1)?.firstOrNull {
+            it != word.example && Regex(Regex.escape(stem), RegexOption.IGNORE_CASE).containsMatchIn(it)
+        }
+        buildCloze(word, ui.words, dMode, testEx)
+    }
     LaunchedEffect(idx) {
         input = ""
         startMs = System.currentTimeMillis()
@@ -261,6 +269,12 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                 is Phase.Grading -> Text("The examiner is reading…", fontFamily = FontFamily.Monospace,
                     color = Color(0xFF566077), modifier = Modifier.padding(vertical = 24.dp))
                 is Phase.ClozeFeedback -> {
+                    LaunchedEffect(ph) {
+                        if (ph.correct) when {
+                            ph.q >= 5 && ui.soundPrecise -> sounds.play("precise")
+                            ui.soundEveryCorrect -> sounds.play("correct")
+                        }
+                    }
                     GradeStamp(ph.q, if (ph.idk) "Noted" else if (ph.correct && ph.q == 3) "Slow pass" else null)
                     if (!ph.correct) {
                         Text("Correct: ${word.word} — ${word.definition}",

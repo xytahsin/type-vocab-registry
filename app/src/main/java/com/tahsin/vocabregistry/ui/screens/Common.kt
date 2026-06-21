@@ -69,11 +69,12 @@ fun Eyebrow(text: String) {
 }
 
 /** Adaptive distractors: difficulty follows the learner's proficiency level. */
-fun buildCloze(word: Word, all: List<Word>, mode: ProficiencyTracker.DistractorMode): Pair<String, List<String>> {
+fun buildCloze(word: Word, all: List<Word>, mode: ProficiencyTracker.DistractorMode, sentenceOverride: String? = null): Pair<String, List<String>> {
     val stem = word.word.split(" ")[0]
     val regex = Regex(Regex.escape(stem), RegexOption.IGNORE_CASE)
-    var sentence = if (regex.containsMatchIn(word.example))
-        regex.replace(word.example, "______") else word.example + "  →  [______]"
+    val src = sentenceOverride ?: word.example
+    var sentence = if (regex.containsMatchIn(src))
+        regex.replace(src, "______") else src + "  →  [______]"
     // article must not betray the answer
     sentence = Regex("\\b(a|an)(\\s+)(?=______)", RegexOption.IGNORE_CASE).replace(sentence) { m ->
         (if (m.groupValues[1][0].isUpperCase()) "A/an" else "a/an") + m.groupValues[2]

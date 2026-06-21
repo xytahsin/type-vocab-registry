@@ -258,16 +258,7 @@ fun BrowseScreen(vm: AppViewModel) {
         Spacer(Modifier.height(8.dp))
         LazyColumn {
             items(list, key = { it.id }) { w ->
-                PaperCard(Modifier.padding(vertical = 3.dp)) {
-                    Text(w.word, fontSize = 16.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, color = Color(0xFF111726))
-                    Text("${w.pos} · ${w.theme} — ${w.definition}", fontSize = 12.sp, color = Color(0xFF566077))
-                    val st = ui.axes[w.id]
-                    if (st != null) {
-                        Text(Axis.entries.joinToString(" · ") { k ->
-                            "${k.name}:${st[k]?.status?.name?.take(3) ?: "—"}"
-                        }, fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Ledger.Green)
-                    }
-                }
+                RegistryRow(w, ui.axes[w.id], ui.rich[w.id])
             }
         }
     }
@@ -417,6 +408,14 @@ fun SettingsScreen(vm: AppViewModel) {
             ToggleRow("BCS vocabulary (Tier 6)", ui.tier6) { vm.setTier6(it) }
             ToggleRow("Bank-job prep (Tier 7)", ui.tier7) { vm.setTier7(it) }
             ToggleRow("Academic / research (Tier 8)", ui.tier8) { vm.setTier8(it) }
+        }
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Text("Sound", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            Text("Soft chimes during sessions \u2014 choose what you hear.",
+                fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
+            ToggleRow("Chime on every correct answer", ui.soundEveryCorrect) { vm.setSoundCorrect(it) }
+            ToggleRow("Special chime on Precise answers", ui.soundPrecise) { vm.setSoundPrecise(it) }
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {

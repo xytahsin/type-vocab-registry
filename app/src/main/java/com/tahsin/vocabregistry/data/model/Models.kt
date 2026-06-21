@@ -9,6 +9,17 @@ data class WordJson(
     val i: Int, val w: String, val p: String, val t: Int, val h: String,
     val d: String, val e: String, val c: List<String> = emptyList(),
     val s: List<String> = emptyList(), val x: String? = null,
+    // --- optional enrichment (absent on un-enriched entries; parse stays backward-compatible) ---
+    val xs: List<String> = emptyList(),   // extra example sentences (beyond e)
+    val an: List<String> = emptyList(),   // antonyms
+    val im: List<String> = emptyList(),   // idioms / closest phrases
+)
+
+/** Derived, in-memory only (never stored in Room — so no DB migration, progress preserved). */
+data class RichExtras(
+    val examples: List<String>,   // primary example first, then extras
+    val antonyms: List<String>,
+    val idioms: List<String>,
 )
 
 @Entity(tableName = "words")

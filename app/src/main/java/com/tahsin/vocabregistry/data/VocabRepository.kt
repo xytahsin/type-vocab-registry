@@ -38,11 +38,14 @@ object Keys {
     val TIER7 = booleanPreferencesKey("tier7_bank")
     val TIER8 = booleanPreferencesKey("tier8_academic")
     val WOTD_DATE = stringPreferencesKey("wotd_date")
+    val SOUND_CORRECT = booleanPreferencesKey("sound_correct")
+    val SOUND_PRECISE = booleanPreferencesKey("sound_precise")
 }
 
 class VocabRepository private constructor(private val ctx: Context) {
     val db: AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, "vocab.db").build()
     private val json = Json { ignoreUnknownKeys = true }
+    @Volatile private var richCache: Map<Int, RichExtras>? = null
 
     suspend fun seedIfNeeded() {
         if (db.words().count() > 0) return
@@ -52,6 +55,21 @@ class VocabRepository private constructor(private val ctx: Context) {
             Word(it.i, it.w, it.p, it.t, it.h, it.d, it.e,
                 it.c.joinToString("|"), it.s.joinToString(";"), it.x)
         })
+    }
+
+    /** Parse the bundled vocab.json once into per-word rich extras (examples/antonyms/idioms). */
+    suspend fun richExtras(): Map<Int, RichExtras> {
+        richCache?.let { return it }
+        return try {
+            val raw = ctx.assets.open("vocab.json").bufferedReader().use { it.readText() }
+            json.decodeFromString<List<WordJson>>(raw).associate { wj ->
+                wj.i to RichExtras(
+                    examples = (listOf(wj.e) + wj.xs).map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+                    antonyms = wj.an.map { it.trim() }.filter { it.isNotEmpty() },
+                    idioms = wj.im.map { it.trim() }.filter { it.isNotEmpty() },
+                )
+            }.also { richCache = it }
+        } catch (e: Exception) { emptyMap() }
     }
 
     suspend fun axesMap(): Map<Int, Map<Axis, AxisState>> =

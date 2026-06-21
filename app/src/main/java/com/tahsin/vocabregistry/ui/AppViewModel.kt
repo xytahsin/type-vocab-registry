@@ -37,6 +37,9 @@ data class UiSnapshot(
     val tier6: Boolean = false, val tier7: Boolean = false, val tier8: Boolean = false,
     val wordOfDay: Word? = null,
     val reviewsToday: Int = 0,
+    val soundEveryCorrect: Boolean = true,
+    val soundPrecise: Boolean = true,
+    val rich: Map<Int, RichExtras> = emptyMap(),
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -86,6 +89,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             tier6 = p[Keys.TIER6] ?: false, tier7 = p[Keys.TIER7] ?: false, tier8 = p[Keys.TIER8] ?: false,
             wordOfDay = repo.wordOfDay(),
             reviewsToday = reviewsToday,
+            soundEveryCorrect = p[Keys.SOUND_CORRECT] ?: true,
+            soundPrecise = p[Keys.SOUND_PRECISE] ?: true,
+            rich = repo.richExtras(),
         )
     }
 
@@ -166,6 +172,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setTier6(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER6] = b }; refresh() }
     fun setTier7(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER7] = b }; refresh() }
     fun setTier8(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER8] = b }; refresh() }
+    fun setSoundCorrect(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.SOUND_CORRECT] = b }; refresh() }
+    fun setSoundPrecise(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.SOUND_PRECISE] = b }; refresh() }
     fun setApiKey(k: String) = viewModelScope.launch {
         keyCache = k.ifBlank { null }
         repo.edit { it[Keys.API_KEY] = k }; refresh()
