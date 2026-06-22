@@ -532,7 +532,7 @@ fun WritingScreen(vm: AppViewModel) {
                             ?: "Examiner unreachable \u2014 check the API key in Settings."
                         busy = false
                     }
-                }, Modifier.padding(top = 6.dp), colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) {
+                }, modifier = Modifier.padding(top = 6.dp), colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) {
                     Text(if (busy) "Examining\u2026" else "Ask the AI examiner")
                 }
                 aiResult?.let { raw ->
