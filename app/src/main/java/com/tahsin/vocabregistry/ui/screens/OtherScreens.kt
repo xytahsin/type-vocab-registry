@@ -1,6 +1,10 @@
 package com.tahsin.vocabregistry.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +92,9 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
     val ui by vm.ui.collectAsState()
     LaunchedEffect(Unit) { vm.refresh() }
     val speak = rememberSpeaker()
+    var celebrateBand by remember { mutableStateOf<Double?>(null) }
+    LaunchedEffect(ui.bandUp, ui.band) { if (ui.bandUp) celebrateBand = ui.band }
+    celebrateBand?.let { b -> BandUpOverlay(b) { celebrateBand = null } }
     Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
@@ -106,20 +115,17 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
         Spacer(Modifier.height(10.dp))
         RankBadgesCard(ui)
         Spacer(Modifier.height(10.dp))
+        HeroReadinessRing(ui)
+        Spacer(Modifier.height(10.dp))
+        HeroXpCard(ui)
+        Spacer(Modifier.height(10.dp))
+        DailyQuestsCard(ui)
+        Spacer(Modifier.height(10.dp))
         PaperCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Readiness ${ui.band}", color = Ledger.Stamp, fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
-                    Text("IELTS in ${ui.daysToExam} days · ${ui.mastered} mastered · ${ui.axes.size} in circulation",
-                        fontSize = 12.sp, color = Color(0xFF566077))
-                    Spacer(Modifier.height(6.dp))
-                    // THE ADAPTIVE DIAL — visible so the learner knows the system is following them
-                    Chip("Level: ${ui.proficiency.level.title} · graded at band ${ui.proficiency.level.graderBand}" +
-                        if (ui.proficiency.demoted) " (tightened)" else "",
-                        if (ui.proficiency.demoted) Ledger.Stamp else Ledger.Green)
-                }
-            }
+            // THE ADAPTIVE DIAL — visible so the learner knows the system is following them
+            Chip("Level: ${ui.proficiency.level.title} \u00B7 graded at band ${ui.proficiency.level.graderBand}" +
+                if (ui.proficiency.demoted) " (tightened)" else "",
+                if (ui.proficiency.demoted) Ledger.Stamp else Ledger.Green)
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
@@ -180,6 +186,82 @@ fun ProgressScreen(vm: AppViewModel) {
         Eyebrow("Audit trail")
         Text("Progress", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(12.dp))
+
+        var stats by remember { mutableStateOf(StatsData()) }
+        LaunchedEffect(Unit) { stats = vm.loadStats() }
+
+        // headline tiles
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile("Reviews", stats.totalReviews.toString(), Modifier.weight(1f))
+            StatTile("Days", stats.daysStudied.toString(), Modifier.weight(1f))
+            StatTile("Accuracy", "${(stats.overallAccuracy * 100).toInt()}%", Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile("Streak", "${ui.streak}d", Modifier.weight(1f))
+            StatTile("Best", "${ui.longest}d", Modifier.weight(1f))
+            StatTile("Mastered", ui.mastered.toString(), Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // study heatmap
+        PaperCard {
+            Text("Study activity \u00B7 last 16 weeks", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                stats.heatmap.chunked(7).forEach { wk ->
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        wk.forEach { dc ->
+                            val intensity = if (stats.busiestDay == 0) 0f
+                                else (dc.count.toFloat() / stats.busiestDay).coerceIn(0f, 1f)
+                            val c = if (dc.count == 0) Color(0xFFE6EBF3)
+                                else lerp(Color(0xFFCDE5CB), Ledger.Green, intensity)
+                            Box(Modifier.size(11.dp).clip(RoundedCornerShape(2.dp)).background(c))
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("less", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
+                listOf(0f, 0.34f, 0.67f, 1f).forEach { t ->
+                    val c = if (t == 0f) Color(0xFFE6EBF3) else lerp(Color(0xFFCDE5CB), Ledger.Green, t)
+                    Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(c))
+                }
+                Text("more", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // weekly reviews + accuracy
+        PaperCard {
+            Text("Weekly reviews", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            val maxRv = (stats.weeks.maxOfOrNull { it.reviews } ?: 0).coerceAtLeast(1)
+            Row(Modifier.fillMaxWidth().height(64.dp).padding(top = 8.dp),
+                verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                stats.weeks.forEach { w ->
+                    Box(Modifier.weight(1f).fillMaxHeight((w.reviews.toFloat() / maxRv).coerceIn(0.03f, 1f))
+                        .background(Ledger.Stamp, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                stats.weeks.forEach { w ->
+                    Text(w.label, Modifier.weight(1f), fontSize = 8.sp, fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF566077), textAlign = TextAlign.Center, maxLines = 1)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("Weekly accuracy", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            Row(Modifier.fillMaxWidth().height(48.dp).padding(top = 8.dp),
+                verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                stats.weeks.forEach { w ->
+                    val h = if (w.reviews == 0) 0.03f else w.accuracy.coerceIn(0.03f, 1f)
+                    Box(Modifier.weight(1f).fillMaxHeight(h)
+                        .background(Ledger.Green, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
         PaperCard {
             Text("Readiness trend", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             val pts = ui.history.takeLast(30)
@@ -265,73 +347,229 @@ fun BrowseScreen(vm: AppViewModel) {
 }
 
 /* ---------- WRITING ---------- */
-private val T2_PROMPTS = listOf(
-    "Some people believe governments should prioritise spending on public transport over roads. To what extent do you agree or disagree?",
-    "In many countries the gap between rich and poor is widening. What problems does this cause, and what measures could address them?",
-    "Some argue technology makes public services more accessible; others say it excludes vulnerable groups. Discuss both views and give your opinion.",
-    "Environmental problems are too big for individual countries to solve. International cooperation is the only answer. Do you agree or disagree?",
+private val IELTS_CRITERIA = listOf(
+    "Task Response" to "Does it fully answer the question with a clear position and developed ideas?",
+    "Coherence & Cohesion" to "Is it well organised, with logical paragraphs and smooth linking?",
+    "Lexical Resource" to "Is the vocabulary wide, precise and natural?",
+    "Grammatical Range & Accuracy" to "Are sentence structures varied and largely error-free?",
 )
+
 @Composable
 fun WritingScreen(vm: AppViewModel) {
     val ui by vm.ui.collectAsState()
-    var prompt by remember { mutableStateOf(T2_PROMPTS.random()) }
-    var text by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
-    var result by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    var items by remember { mutableStateOf<List<WritingJson>>(emptyList()) }
+    LaunchedEffect(Unit) { items = vm.repo.writingItems() }
+
+    if (items.isEmpty()) {
+        Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp)) {
+            Eyebrow("Writing desk")
+            Text("Loading the Task 2 library\u2026", color = Ledger.GreenSoft,
+                fontFamily = FontFamily.Monospace, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+        }
+        return
+    }
+
+    var idx by remember(items) { mutableIntStateOf(items.indices.random()) }
+    val item = items[idx]
+    var text by remember(idx) { mutableStateOf("") }
+    var showSamples by remember(idx) { mutableStateOf(false) }
+    var showRubric by remember(idx) { mutableStateOf(false) }
+    val scores = remember(idx) { mutableStateListOf(6.0, 6.0, 6.0, 6.0) }
+    var saved by remember(idx) { mutableStateOf<Double?>(null) }
     val wc = text.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+    val estBand = Math.round((scores.sum() / scores.size) * 2.0) / 2.0
+    var busy by remember { mutableStateOf(false) }
+    var aiResult by remember(idx) { mutableStateOf<String?>(null) }
+
     Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(16.dp).verticalScroll(rememberScrollState())) {
         Eyebrow("Writing desk")
         Text("Task 2 practice", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
+        Text("${items.size} prompts \u00B7 ${items.count { it.hasSamples }} with band 6 vs 8 models",
+            color = Ledger.GreenSoft, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
         Spacer(Modifier.height(10.dp))
+
         PaperCard {
-            Text(prompt, fontSize = 14.sp, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, color = Color(0xFF111726))
-            TextButton(onClick = { prompt = T2_PROMPTS.random(); result = null }) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Chip(item.type, Ledger.Brass)
+                Chip(item.topic, Ledger.Green)
+                if (item.hasSamples) Chip("models", Ledger.Stamp)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(item.prompt, fontSize = 15.sp, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic,
+                lineHeight = 22.sp, color = Color(0xFF111726))
+            TextButton(onClick = { idx = items.indices.random() }) {
                 Text("different prompt", fontSize = 11.sp, color = Color(0xFF566077), fontFamily = FontFamily.Monospace)
             }
-            OutlinedTextField(value = text, onValueChange = { text = it }, Modifier.fillMaxWidth(),
-                minLines = 8, placeholder = { Text("150–200 words. Deploy your targets — the examiner is watching.", color = Color(0xFF566077)) },
-                colors = inkFieldColors())
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("$wc words", fontFamily = FontFamily.Monospace, fontSize = 11.sp,
-                    color = if (wc >= 150) Ledger.Green else Color(0xFF566077))
-                Button(enabled = !busy && wc >= 80, onClick = {
-                    busy = true; result = null
-                    scope.launch {
-                        val targets = ui.axes.keys.mapNotNull { id -> ui.words.find { it.id == id }?.word }.take(250) +
-                            if (ui.academicMode) ui.words.filter { it.tier == 4 }.map { it.word } else emptyList()
-                        result = vm.grader.gradeEssay(prompt, text, targets, ui.proficiency.level)
-                            ?: "Examiner unreachable — check the API key in Settings."
-                        busy = false
+        }
+
+        if (item.phrases.isNotEmpty() || item.targets.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            PaperCard {
+                if (item.phrases.isNotEmpty()) {
+                    Text("Useful phrases", fontSize = 14.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                    Spacer(Modifier.height(4.dp))
+                    item.phrases.forEach { ph ->
+                        Text("\u2022 $ph", fontSize = 12.sp, color = Color(0xFF33507F),
+                            fontFamily = FontFamily.Serif, lineHeight = 18.sp)
                     }
-                }, colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) {
-                    Text(if (busy) "Examining…" else "Submit to examiner")
+                }
+                if (item.targets.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Target vocabulary", fontSize = 14.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                    Text(item.targets.joinToString("  \u00B7  "), fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF566077), lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
                 }
             }
-            result?.let { raw ->
-                Spacer(Modifier.height(10.dp))
-                val pretty = runCatching {
-                    val o = Json.parseToJsonElement(raw).jsonObject
-                    buildString {
-                        appendLine("Band ${o["band"]?.jsonPrimitive?.content} (graded at level ${ui.proficiency.level.title})")
-                        o["usedTargets"]?.jsonArray?.let { a -> if (a.isNotEmpty())
-                            appendLine("Deployed: " + a.joinToString { it.jsonPrimitive.content }) }
-                        o["misused"]?.jsonArray?.let { a -> if (a.isNotEmpty())
-                            appendLine("Misused: " + a.joinToString { it.jsonPrimitive.content }) }
-                        o["missedOpportunities"]?.jsonArray?.forEach { m ->
-                            val mo = m.jsonObject
-                            appendLine("Could have used ${mo["word"]?.jsonPrimitive?.content} — “${mo["where"]?.jsonPrimitive?.content}”")
+        }
+
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Text("Your response", fontSize = 14.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            Text("Write here or on paper, aiming for 250+ words. Then compare with the models and grade yourself.",
+                fontSize = 11.sp, color = Color(0xFF566077), lineHeight = 16.sp)
+            OutlinedTextField(value = text, onValueChange = { text = it },
+                Modifier.fillMaxWidth().padding(top = 6.dp), minLines = 6,
+                placeholder = { Text("Deploy your target vocabulary\u2026", color = Color(0xFF566077)) },
+                colors = inkFieldColors())
+            Text("$wc words", fontFamily = FontFamily.Monospace, fontSize = 11.sp,
+                color = if (wc >= 250) Ledger.Green else Color(0xFF566077), modifier = Modifier.padding(top = 4.dp))
+        }
+
+        if (item.hasSamples) {
+            Spacer(Modifier.height(10.dp))
+            PaperCard {
+                Row(Modifier.fillMaxWidth().clickable { showSamples = !showSamples },
+                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Model answers \u2014 band 6 vs band 8", fontSize = 14.sp, fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+                    Text(if (showSamples) "\u25B2" else "\u25BC", fontSize = 12.sp, color = Color(0xFF566077))
+                }
+                if (showSamples) {
+                    Spacer(Modifier.height(8.dp))
+                    SampleBlock("BAND 6", item.band6, Ledger.Brass)
+                    Spacer(Modifier.height(10.dp))
+                    SampleBlock("BAND 8", item.band8, Ledger.Green)
+                    if (item.gap.isNotEmpty()) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("What lifts a 6 to an 8", fontSize = 13.sp, fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+                        Spacer(Modifier.height(4.dp))
+                        item.gap.forEach { g ->
+                            Text("\u2192 $g", fontSize = 12.sp, color = Color(0xFF33507F), fontFamily = FontFamily.Serif,
+                                lineHeight = 18.sp, modifier = Modifier.padding(vertical = 1.dp))
                         }
-                        o["topFix"]?.jsonPrimitive?.content?.let { appendLine("✎ $it") }
                     }
-                }.getOrElse { raw }
-                Text(pretty, fontSize = 13.sp, lineHeight = 20.sp, color = Color(0xFF111726))
+                }
+            }
+        } else {
+            Spacer(Modifier.height(10.dp))
+            PaperCard {
+                Text("Practice prompt", fontSize = 13.sp, fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+                Text("This prompt is for free practice. Use the phrase bank above, then grade your essay with the rubric below.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
             }
         }
+
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Row(Modifier.fillMaxWidth().clickable { showRubric = !showRubric },
+                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Grade yourself (no AI needed)", fontSize = 14.sp, fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+                Text(if (showRubric) "\u25B2" else "\u25BC", fontSize = 12.sp, color = Color(0xFF566077))
+            }
+            if (showRubric) {
+                Spacer(Modifier.height(6.dp))
+                IELTS_CRITERIA.forEachIndexed { i, pair ->
+                    Spacer(Modifier.height(6.dp))
+                    Text(pair.first, fontSize = 13.sp, fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+                    Text(pair.second, fontSize = 11.sp, color = Color(0xFF566077), lineHeight = 15.sp)
+                    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        BandStepperButton("\u2212") { if (scores[i] > 4.0) scores[i] = scores[i] - 0.5 }
+                        Text("%.1f".format(scores[i]), fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace, color = Ledger.Stamp)
+                        BandStepperButton("+") { if (scores[i] < 9.0) scores[i] = scores[i] + 0.5 }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Box(Modifier.fillMaxWidth().background(Color(0xFFEDF1FA), RoundedCornerShape(10.dp)).padding(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("Estimated band", fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
+                            Text("%.1f".format(estBand), fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                        }
+                        Button(onClick = { vm.creditWriting(estBand); saved = estBand },
+                            colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) {
+                            Text("Save")
+                        }
+                    }
+                }
+                saved?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Saved band ${"%.1f".format(it)} \u2014 this feeds your readiness ring and earns hero XP.",
+                        fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = Ledger.Green, lineHeight = 17.sp)
+                }
+            }
+        }
+
+        if (ui.apiKeySet) {
+            Spacer(Modifier.height(10.dp))
+            PaperCard {
+                Text("Optional: AI examiner", fontSize = 13.sp, fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+                Text("You have an API key saved, so you can also get an automated second opinion.",
+                    fontSize = 11.sp, color = Color(0xFF566077), lineHeight = 16.sp)
+                Button(enabled = !busy && wc >= 80, onClick = {
+                    busy = true; aiResult = null
+                    scope.launch {
+                        aiResult = vm.grader.gradeEssay(item.prompt, text, item.targets, ui.proficiency.level)
+                            ?: "Examiner unreachable \u2014 check the API key in Settings."
+                        busy = false
+                    }
+                }, Modifier.padding(top = 6.dp), colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) {
+                    Text(if (busy) "Examining\u2026" else "Ask the AI examiner")
+                }
+                aiResult?.let { raw ->
+                    Spacer(Modifier.height(8.dp))
+                    val pretty = runCatching {
+                        val o = Json.parseToJsonElement(raw).jsonObject
+                        buildString {
+                            appendLine("Band ${o["band"]?.jsonPrimitive?.content}")
+                            o["topFix"]?.jsonPrimitive?.content?.let { append("\u270E $it") }
+                        }
+                    }.getOrElse { raw }
+                    Text(pretty, fontSize = 13.sp, lineHeight = 20.sp, color = Color(0xFF111726))
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
+@Composable
+private fun SampleBlock(label: String, body: String, accent: Color) {
+    Column(Modifier.fillMaxWidth().background(Color(0xFFF6F8FC), RoundedCornerShape(10.dp)).padding(12.dp)) {
+        Text(label, fontSize = 11.sp, fontFamily = FontFamily.Monospace, letterSpacing = 2.sp,
+            fontWeight = FontWeight.Bold, color = accent)
+        Spacer(Modifier.height(6.dp))
+        Text(body, fontSize = 13.sp, fontFamily = FontFamily.Serif, lineHeight = 20.sp, color = Color(0xFF111726))
+    }
+}
+
+@Composable
+private fun BandStepperButton(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(44.dp).clip(CircleShape).background(Color(0xFFEDF1FA))
+            .border(1.dp, Color(0xFFD7DEEC), CircleShape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(label, fontSize = 20.sp, color = Color(0xFF111726), fontWeight = FontWeight.Bold) }
+}
 /* ---------- SETTINGS ---------- */
 @Composable
 fun SettingsScreen(vm: AppViewModel) {
@@ -419,6 +657,33 @@ fun SettingsScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Daily reminder", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                    Text("A once-a-day nudge when cards are due, plus the word of the day.",
+                        fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
+                }
+                Switch(checked = ui.reminderOn, onCheckedChange = { vm.setReminder(it, ui.reminderHour) })
+            }
+            if (ui.reminderOn) {
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("Remind me at", fontSize = 13.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        BandStepperButton("\u2212") { vm.setReminder(true, (ui.reminderHour + 23) % 24) }
+                        Text(hourLabel(ui.reminderHour), fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace, color = Ledger.Stamp)
+                        BandStepperButton("+") { vm.setReminder(true, (ui.reminderHour + 1) % 24) }
+                    }
+                }
+                Text("Exact timing is approximate \u2014 Android batches reminders to save battery.",
+                    fontSize = 11.sp, color = Color(0xFF566077), modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
             Text("Backup & restore", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text("Save all your progress \u2014 every word's memory, streaks, and level \u2014 to a file. " +
                 "Move it to a new phone and import to continue exactly where you left off.",
@@ -442,4 +707,27 @@ fun SettingsScreen(vm: AppViewModel) {
                 fontSize = 12.5.sp, color = Color(0xFF566077), lineHeight = 18.sp)
         }
     }
+}
+
+@Composable
+private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFFF6F8FC))
+            .padding(vertical = 12.dp, horizontal = 6.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            Text(label, fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
+        }
+    }
+}
+
+private fun hourLabel(h: Int): String {
+    val ampm = if (h < 12) "AM" else "PM"
+    val h12 = when {
+        h == 0 -> 12
+        h > 12 -> h - 12
+        else -> h
+    }
+    return "$h12 $ampm"
 }

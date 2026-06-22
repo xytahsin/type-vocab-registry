@@ -12,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -49,8 +51,13 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     val dMode = ProficiencyTracker.distractorMode(ui.proficiency.level)
     val speak = rememberSpeaker()
     val sounds = rememberSounds()
+    val haptic = LocalHapticFeedback.current
 
-    fun finish() { vm.finishSession(); onClose() }
+    fun finish() {
+        val avgQ = if (done > 0) qSum.toDouble() / done else 0.0
+        vm.finishSession(HeroXp.forSession(done, avgQ))
+        onClose()
+    }
 
     if (cards.isEmpty()) {
         Column(Modifier.fillMaxSize().background(Ledger.nightSky).padding(24.dp)) {
@@ -270,9 +277,12 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
                     color = Color(0xFF566077), modifier = Modifier.padding(vertical = 24.dp))
                 is Phase.ClozeFeedback -> {
                     LaunchedEffect(ph) {
-                        if (ph.correct) when {
-                            ph.q >= 5 && ui.soundPrecise -> sounds.play("precise")
-                            ui.soundEveryCorrect -> sounds.play("correct")
+                        if (ph.correct) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            when {
+                                ph.q >= 5 && ui.soundPrecise -> sounds.play("precise")
+                                ui.soundEveryCorrect -> sounds.play("correct")
+                            }
                         }
                     }
                     GradeStamp(ph.q, if (ph.idk) "Noted" else if (ph.correct && ph.q == 3) "Slow pass" else null)

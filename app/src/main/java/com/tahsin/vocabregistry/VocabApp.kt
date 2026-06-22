@@ -1,17 +1,12 @@
 package com.tahsin.vocabregistry
 
 import android.app.Application
-import androidx.work.*
-import com.tahsin.vocabregistry.notify.ReviewWorker
-import java.util.concurrent.TimeUnit
+import com.tahsin.vocabregistry.notify.Reminders
 
 class VocabApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        val req = PeriodicWorkRequestBuilder<ReviewWorker>(12, TimeUnit.HOURS)
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.NOT_REQUIRED).build())
-            .build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "review-reminder", ExistingPeriodicWorkPolicy.KEEP, req)
+        // Schedule (or cancel) the daily study reminder according to saved preferences.
+        Reminders.sync(this)
     }
 }

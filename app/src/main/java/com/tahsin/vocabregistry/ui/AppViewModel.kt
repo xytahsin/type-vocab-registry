@@ -40,6 +40,21 @@ data class UiSnapshot(
     val soundEveryCorrect: Boolean = true,
     val soundPrecise: Boolean = true,
     val rich: Map<Int, RichExtras> = emptyMap(),
+    // --- gamification ---
+    val preciseBand: Double = 4.0,
+    val ringFrac: Float = 0f,
+    val xp: Long = 0L,
+    val essays: Int = 0,
+    val bestWriting: Double = 0.0,
+    val writingToday: Int = 0,
+    val questsDoneCount: Int = 0,
+    val questAllDoneToday: Boolean = false,
+    val tierMastered: Map<Int, Int> = emptyMap(),
+    val tierTotals: Map<Int, Int> = emptyMap(),
+    val bandUp: Boolean = false,
+    val comeback: Boolean = false,
+    val reminderOn: Boolean = true,
+    val reminderHour: Int = 19,
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -67,31 +82,85 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val startToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
             .toInstant().toEpochMilli()
         val reviewsToday = repo.db.logs().recent(1500).count { it.epoch >= startToday }
+
+        // ---- gamification computations ----
+        val today = LocalDate.now().toString()
+        val writingStrength = p[Keys.WRITING_STRENGTH] ?: 0.0
+        val prof = repo.proficiency()
+        val band = Readiness.band(words, axes, writingStrength)
+        val precise = Readiness.precise(words, axes, writingStrength)
+        val ringFrac = Readiness.ringFraction(words, axes, writingStrength)
+        val newToday = p[Keys.NEW_TODAY] ?: 0
+        val writingToday = if (p[Keys.WRITING_TODAY_DATE] == today) (p[Keys.WRITING_TODAY] ?: 0) else 0
+
+        // band-up + comeback bookkeeping (writes flags, then we re-read)
+        val prevBand = p[Keys.LAST_BAND_SEEN] ?: 0.0
+        val bandUp = prevBand > 0.0 && band > prevBand
+        repo.edit { e ->
+            e[Keys.LAST_BAND_SEEN] = band
+            val wasDemoted = e[Keys.WAS_DEMOTED] ?: false
+            if (prof.demoted) e[Keys.WAS_DEMOTED] = true
+            else if (wasDemoted) e[Keys.COMEBACK] = true
+        }
+        // daily quests: 15 reviews, 3 new words, 1 essay
+        val rGoal = 15; val nGoal = 3; val wGoal = 1
+        repo.settleQuests(reviewsToday, newToday, writingToday, rGoal, nGoal, wGoal)
+        val questAllDoneToday = reviewsToday >= rGoal && newToday >= nGoal && writingToday >= wGoal
+
+        // tier mastery (for trophies)
+        val tierTotals = words.groupBy { it.tier }.mapValues { (_, v) -> v.size }
+        val masteredIds = axes.filter { (_, m) -> Axis.entries.all { k -> m[k]?.status == AxisStatus.MASTERED } }.keys
+        val masteredWords = words.filter { it.id in masteredIds }
+        val tierMastered = masteredWords.groupBy { it.tier }.mapValues { (_, v) -> v.size }
+
+        val p2 = repo.prefs()   // fresh read after the edits above
+        val dueNow = repo.db.axes().due(now).size
+        val wotd = repo.wordOfDay()
+        val streakNow = p2[Keys.STREAK] ?: 0
         _ui.value = UiSnapshot(
             loading = false,
-            calibrated = p[Keys.CALIBRATED] ?: false,
+            calibrated = p2[Keys.CALIBRATED] ?: false,
             words = words, axes = axes,
-            dueCount = repo.db.axes().due(now).size,
-            band = Readiness.band(words, axes),
-            streak = p[Keys.STREAK] ?: 0, longest = p[Keys.LONGEST] ?: 0,
-            freezes = p[Keys.FREEZES] ?: 2,
+            dueCount = dueNow,
+            band = band,
+            streak = streakNow, longest = p2[Keys.LONGEST] ?: 0,
+            freezes = p2[Keys.FREEZES] ?: 2,
             examDate = exam,
             daysToExam = ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(exam)),
-            proficiency = repo.proficiency(),
-            newToday = p[Keys.NEW_TODAY] ?: 0,
-            academicMode = p[Keys.ACADEMIC] ?: false,
-            capOverride = p[Keys.CAP_OVERRIDE],
-            history = (p[Keys.HISTORY] ?: "").split(";").filter { it.contains(":") }
+            proficiency = prof,
+            newToday = newToday,
+            academicMode = p2[Keys.ACADEMIC] ?: false,
+            capOverride = p2[Keys.CAP_OVERRIDE],
+            history = (p2[Keys.HISTORY] ?: "").split(";").filter { it.contains(":") }
                 .map { val (d, b) = it.split(":"); d to b.toDouble() },
             apiKeySet = !keyCache.isNullOrBlank(),
             mastered = mastered,
-            themeMode = runCatching { ThemeMode.valueOf(p[Keys.THEME_MODE] ?: "DARK") }.getOrDefault(ThemeMode.DARK),
-            tier6 = p[Keys.TIER6] ?: false, tier7 = p[Keys.TIER7] ?: false, tier8 = p[Keys.TIER8] ?: false,
-            wordOfDay = repo.wordOfDay(),
+            themeMode = runCatching { ThemeMode.valueOf(p2[Keys.THEME_MODE] ?: "DARK") }.getOrDefault(ThemeMode.DARK),
+            tier6 = p2[Keys.TIER6] ?: false, tier7 = p2[Keys.TIER7] ?: false, tier8 = p2[Keys.TIER8] ?: false,
+            wordOfDay = wotd,
             reviewsToday = reviewsToday,
-            soundEveryCorrect = p[Keys.SOUND_CORRECT] ?: true,
-            soundPrecise = p[Keys.SOUND_PRECISE] ?: true,
+            soundEveryCorrect = p2[Keys.SOUND_CORRECT] ?: true,
+            soundPrecise = p2[Keys.SOUND_PRECISE] ?: true,
             rich = repo.richExtras(),
+            preciseBand = precise,
+            ringFrac = ringFrac,
+            xp = p2[Keys.XP] ?: 0L,
+            essays = p2[Keys.ESSAYS] ?: 0,
+            bestWriting = p2[Keys.BEST_WRITING] ?: 0.0,
+            writingToday = writingToday,
+            questsDoneCount = p2[Keys.QUESTS_DONE] ?: 0,
+            questAllDoneToday = questAllDoneToday,
+            tierMastered = tierMastered,
+            tierTotals = tierTotals,
+            bandUp = bandUp,
+            comeback = p2[Keys.COMEBACK] ?: false,
+            reminderOn = p2[Keys.REMINDER_ON] ?: true,
+            reminderHour = p2[Keys.REMINDER_HOUR] ?: 19,
+        )
+        // keep the home-screen widget in sync with the values we just computed
+        val bandStr = if (band > 0.0) "%.1f".format(band) else "\u2014"
+        com.tahsin.vocabregistry.widget.LexiconWidget.push(
+            getApplication(), dueNow, streakNow, bandStr, wotd?.word ?: "\u2014",
         )
     }
 
@@ -141,10 +210,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun finishSession() = viewModelScope.launch {
+    fun finishSession(xpEarned: Long = 0L) = viewModelScope.launch {
         val s = _ui.value
-        repo.creditSession(Readiness.band(s.words, repo.axesMap()))
+        val ws = repo.prefs()[Keys.WRITING_STRENGTH] ?: 0.0
+        repo.creditSession(Readiness.band(s.words, repo.axesMap(), ws))
+        if (xpEarned > 0L) repo.addXp(xpEarned)
         refresh()
+    }
+
+    /** Self-rated writing: feeds the readiness band (writing component) and hero XP. */
+    fun creditWriting(selfBand: Double) = viewModelScope.launch {
+        repo.creditWriting(selfBand)
+        refresh()
+    }
+
+    fun creditXp(amount: Long) = viewModelScope.launch {
+        repo.addXp(amount); refresh()
+    }
+
+    /** Aggregate review history for the insights panel. */
+    suspend fun loadStats(): StatsData {
+        val logs = repo.db.logs().recent(2000)
+        return Stats.compute(logs, LocalDate.now(), java.time.ZoneId.systemDefault())
     }
 
     fun seedCalibration(results: List<Pair<Int, Boolean>>) = viewModelScope.launch {
@@ -168,6 +255,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setExamDate(d: String) = viewModelScope.launch { repo.edit { it[Keys.EXAM_DATE] = d }; refresh() }
     fun setAcademic(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.ACADEMIC] = b }; refresh() }
+    fun setReminder(on: Boolean, hour: Int) = viewModelScope.launch {
+        repo.edit { it[Keys.REMINDER_ON] = on; it[Keys.REMINDER_HOUR] = hour }
+        com.tahsin.vocabregistry.notify.Reminders.sync(getApplication())
+        refresh()
+    }
     fun setThemeMode(m: ThemeMode) = viewModelScope.launch { repo.edit { it[Keys.THEME_MODE] = m.name }; refresh() }
     fun setTier6(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER6] = b }; refresh() }
     fun setTier7(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.TIER7] = b }; refresh() }

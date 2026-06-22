@@ -24,6 +24,12 @@ data class PrefsDTO(
     val history: String,
     val themeMode: String = "DARK",
     val tier6: Boolean = false, val tier7: Boolean = false, val tier8: Boolean = false,
+    // gamification (defaulted so older backups still deserialise cleanly)
+    val writingStrength: Double = 0.0,
+    val xp: Long = 0,
+    val essays: Int = 0,
+    val bestWriting: Double = 0.0,
+    val questsDone: Int = 0,
 )
 
 @Serializable
