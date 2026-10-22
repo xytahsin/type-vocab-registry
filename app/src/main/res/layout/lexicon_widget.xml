@@ -11,7 +11,7 @@
         android:id="@+id/w_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="TAHSIN\'S LEXICON"
+        android:text="LEXICON"
         android:textColor="#FFE8C547"
         android:textSize="10sp"
         android:letterSpacing="0.15"

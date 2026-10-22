@@ -54,7 +54,7 @@ class ReviewWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
         channel("reviews", "Review reminders")
         val n = NotificationCompat.Builder(applicationContext, "reviews")
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle("$due items due in Tahsin's Lexicon")
+            .setContentTitle("$due items due in Lexicon")
             .setContentText("Production fades fastest \u2014 a 12-card Sprint clears the backlog.")
             .setContentIntent(openApp())
             .setAutoCancel(true).build()

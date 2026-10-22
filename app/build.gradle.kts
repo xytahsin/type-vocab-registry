@@ -6,16 +6,36 @@ plugins {
 }
 android {
     namespace = "com.tahsin.vocabregistry"
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
         applicationId = "com.tahsin.vocabregistry"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 35
-        versionName = "5.3"
+        targetSdk = 35
+        versionCode = 40
+        versionName = "7.0"
+    }
+    // Release signing comes from GitHub Actions secrets (see .github/workflows/release.yml).
+    // When they're absent — e.g. a local or debug-workflow build — the release build falls
+    // back to the debug key so it still assembles and installs for testing.
+    signingConfigs {
+        create("release") {
+            val ksPath = System.getenv("KEYSTORE_FILE")
+            if (ksPath != null && file(ksPath).exists()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = if (System.getenv("KEYSTORE_FILE") != null)
+                signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -44,5 +64,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("com.android.billingclient:billing-ktx:7.1.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

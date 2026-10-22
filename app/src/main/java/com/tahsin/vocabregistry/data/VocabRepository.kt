@@ -52,6 +52,11 @@ object Keys {
     val QUESTS_DONE = intPreferencesKey("quests_all_done_count")
     val WAS_DEMOTED = booleanPreferencesKey("was_demoted")
     val COMEBACK = booleanPreferencesKey("comeback_earned")
+    // --- onboarding ---
+    val ONBOARDED = booleanPreferencesKey("onboarded")
+    val EXAM_TYPE = stringPreferencesKey("exam_type")
+    // --- monetization ---
+    val PRO = booleanPreferencesKey("pro_unlocked")
     // --- reminders + home-screen widget ---
     val REMINDER_ON = booleanPreferencesKey("reminder_on")
     val REMINDER_HOUR = intPreferencesKey("reminder_hour")
@@ -237,7 +242,7 @@ class VocabRepository private constructor(private val ctx: Context) {
         val backup = Backup(
             exportedAt = System.currentTimeMillis(),
             prefs = PrefsDTO(
-                examDate = p[Keys.EXAM_DATE] ?: "2027-02-15",
+                examDate = p[Keys.EXAM_DATE] ?: LocalDate.now().plusDays(180).toString(),
                 streak = p[Keys.STREAK] ?: 0, longest = p[Keys.LONGEST] ?: 0, lastStudy = p[Keys.LAST_STUDY],
                 freezes = p[Keys.FREEZES] ?: 2, freezeMonth = p[Keys.FREEZE_MONTH],
                 newToday = p[Keys.NEW_TODAY] ?: 0, newTodayDate = p[Keys.NEW_TODAY_DATE],

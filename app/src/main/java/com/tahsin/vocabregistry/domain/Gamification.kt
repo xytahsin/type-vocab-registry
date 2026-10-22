@@ -71,18 +71,31 @@ data class HeroProgress(
     val intoRank: Long,      // xp earned since this rank began
     val rankSpan: Long,      // xp width of this rank (0 = max rank)
     val frac: Float,         // 0..1 progress to next rank
+    val prestige: Int = 0,   // stars earned beyond the top rank
+    val maxed: Boolean = false,
 ) {
     val nextTitle: String get() = HeroRank.next(rank)?.title ?: "Max rank reached"
 }
 
 object HeroXp {
+    /** Once the top rank is reached, one prestige star is earned per this much extra XP. */
+    const val PRESTIGE_STEP: Long = 8000L
+
     fun progress(xp: Long): HeroProgress {
         val rank = HeroRank.forXp(xp)
         val next = HeroRank.next(rank)
-        val into = xp - rank.minXp
-        val span = if (next != null) next.minXp - rank.minXp else 0L
-        val frac = if (span > 0L) (into.toFloat() / span).coerceIn(0f, 1f) else 1f
-        return HeroProgress(rank, xp, into, span, frac)
+        if (next != null) {
+            val into = xp - rank.minXp
+            val span = next.minXp - rank.minXp
+            val frac = if (span > 0L) (into.toFloat() / span).coerceIn(0f, 1f) else 1f
+            return HeroProgress(rank, xp, into, span, frac, prestige = 0, maxed = false)
+        }
+        // top rank: keep moving forward with prestige stars every PRESTIGE_STEP XP
+        val beyond = xp - rank.minXp
+        val prestige = (beyond / PRESTIGE_STEP).toInt()
+        val into = beyond % PRESTIGE_STEP
+        val frac = (into.toFloat() / PRESTIGE_STEP).coerceIn(0f, 1f)
+        return HeroProgress(rank, xp, into, PRESTIGE_STEP, frac, prestige = prestige, maxed = true)
     }
 
     /** XP for finishing a session: rewards volume and quality. */

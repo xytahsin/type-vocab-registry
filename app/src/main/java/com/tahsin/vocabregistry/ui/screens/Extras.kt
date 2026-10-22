@@ -120,7 +120,7 @@ fun ExamHeroCard(ui: UiSnapshot) {
     ) {
         Column {
             Text(
-                "COUNTDOWN TO IELTS", color = Ledger.Brass, fontSize = 11.sp,
+                "COUNTDOWN TO EXAM DAY", color = Ledger.Brass, fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace, letterSpacing = 2.sp,
             )
             Spacer(Modifier.height(6.dp))
@@ -457,7 +457,7 @@ fun StarryLoader() {
             }
             Spacer(Modifier.height(20.dp))
             Text(
-                "Tahsin\u2019s Lexicon", color = Ledger.Cream, fontSize = 20.sp,
+                "Lexicon", color = Ledger.Cream, fontSize = 20.sp,
                 fontFamily = FontFamily.Serif, modifier = Modifier.alpha(twinkle),
             )
             Text(
@@ -644,8 +644,13 @@ fun HeroXpCard(ui: UiSnapshot) {
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
                 Eyebrow("Hero level")
+                val starText = when {
+                    !prog.maxed || prog.prestige == 0 -> ""
+                    prog.prestige <= 5 -> "  " + "\u2605".repeat(prog.prestige)
+                    else -> "  \u2605\u00D7${prog.prestige}"
+                }
                 Text(
-                    prog.rank.title, fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                    prog.rank.title + starText, fontSize = 17.sp, fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Serif, color = prog.rank.color,
                 )
             }
@@ -660,8 +665,8 @@ fun HeroXpCard(ui: UiSnapshot) {
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            if (prog.rankSpan > 0L) "${prog.intoRank} / ${prog.rankSpan} XP to ${prog.nextTitle}"
-            else "Maximum rank reached \u2014 legendary.",
+            if (!prog.maxed) "${prog.intoRank} / ${prog.rankSpan} XP to ${prog.nextTitle}"
+            else "${prog.intoRank} / ${prog.rankSpan} XP to \u2605${prog.prestige + 1}",
             fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077),
         )
     }

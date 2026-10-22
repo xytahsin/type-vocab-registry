@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Backup(
     val version: Int = 1,
-    val app: String = "Tahsincabs",
+    val app: String = "Lexicon",
     val exportedAt: Long,
     val prefs: PrefsDTO,
     val axes: List<AxisDTO>,

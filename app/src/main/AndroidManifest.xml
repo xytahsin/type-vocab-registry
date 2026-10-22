@@ -10,7 +10,7 @@
     </queries>
     <application
         android:name=".VocabApp"
-        android:label="Tahsin's Lexicon"
+        android:label="Lexicon"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.VocabRegistry"
@@ -21,6 +21,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- AdMob App ID. This is Google's OFFICIAL TEST ID — replace with your real
+             ca-app-pub-XXXX~YYYY from the AdMob console before the Play release. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
         <receiver
             android:name=".widget.LexiconWidget"
             android:exported="true">

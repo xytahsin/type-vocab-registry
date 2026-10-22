@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.style.TextAlign
+import com.tahsin.vocabregistry.ads.AdBanner
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -99,7 +100,7 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Eyebrow("Daily docket")
-                Text("Tahsin\u2019s Lexicon", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
+                Text("Lexicon", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("${ui.streak}d", color = Ledger.Brass, fontSize = 22.sp,
@@ -158,11 +159,16 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
             }
         }
         Spacer(Modifier.height(12.dp))
-        listOf(
-            Triple(SessionMode.DEEP, "Deep session", "30 exposures · new words + grading"),
-            Triple(SessionMode.SPRINT, "Sprint", "12 due items only · ~5 minutes"),
-            Triple(SessionMode.COMMUTE, "Commute", "20 recognition cards · no typing"),
-        ).forEach { (mode, title, sub) ->
+        val tiles = buildList {
+            add(Triple(SessionMode.DEEP, "Deep session", "30 exposures \u00B7 new words + grading"))
+            add(Triple(SessionMode.SPRINT, "Sprint", "12 due items only \u00B7 ~5 minutes"))
+            add(Triple(SessionMode.COMMUTE, "Commute", "20 recognition cards \u00B7 no typing"))
+            if (ui.leeches.isNotEmpty()) {
+                add(Triple(SessionMode.LEECH, "Stubborn words",
+                    "${ui.leeches.size} leeches \u00B7 drilled with hints"))
+            }
+        }
+        tiles.forEach { (mode, title, sub) ->
             Surface(onClick = { startSession(mode) }, color = if (mode == SessionMode.DEEP) Color(0xFFFFFFFF) else Color.Transparent,
                 shape = RoundedCornerShape(14.dp), border = androidx.compose.foundation.BorderStroke(1.dp,
                     if (mode == SessionMode.DEEP) Color(0xFFD7DEEC) else Ledger.GreenSoft.copy(alpha = .35f)),
@@ -175,6 +181,9 @@ fun DashboardScreen(vm: AppViewModel, startSession: (SessionMode) -> Unit) {
                 }
             }
         }
+        Spacer(Modifier.height(12.dp))
+        AdBanner(isPro = ui.isPro)
+        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -204,60 +213,102 @@ fun ProgressScreen(vm: AppViewModel) {
         }
         Spacer(Modifier.height(10.dp))
 
-        // study heatmap
-        PaperCard {
-            Text("Study activity \u00B7 last 16 weeks", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                stats.heatmap.chunked(7).forEach { wk ->
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        wk.forEach { dc ->
-                            val intensity = if (stats.busiestDay == 0) 0f
-                                else (dc.count.toFloat() / stats.busiestDay).coerceIn(0f, 1f)
-                            val c = if (dc.count == 0) Color(0xFFE6EBF3)
-                                else lerp(Color(0xFFCDE5CB), Ledger.Green, intensity)
-                            Box(Modifier.size(11.dp).clip(RoundedCornerShape(2.dp)).background(c))
+        if (ui.isPro) {
+            // study heatmap
+            PaperCard {
+                Text("Study activity \u00B7 last 16 weeks", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    stats.heatmap.chunked(7).forEach { wk ->
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            wk.forEach { dc ->
+                                val intensity = if (stats.busiestDay == 0) 0f
+                                    else (dc.count.toFloat() / stats.busiestDay).coerceIn(0f, 1f)
+                                val c = if (dc.count == 0) Color(0xFFE6EBF3)
+                                    else lerp(Color(0xFFCDE5CB), Ledger.Green, intensity)
+                                Box(Modifier.size(11.dp).clip(RoundedCornerShape(2.dp)).background(c))
+                            }
                         }
                     }
                 }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("less", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
-                listOf(0f, 0.34f, 0.67f, 1f).forEach { t ->
-                    val c = if (t == 0f) Color(0xFFE6EBF3) else lerp(Color(0xFFCDE5CB), Ledger.Green, t)
-                    Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(c))
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("less", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
+                    listOf(0f, 0.34f, 0.67f, 1f).forEach { t ->
+                        val c = if (t == 0f) Color(0xFFE6EBF3) else lerp(Color(0xFFCDE5CB), Ledger.Green, t)
+                        Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(c))
+                    }
+                    Text("more", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
                 }
-                Text("more", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF566077))
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // weekly reviews + accuracy
+            PaperCard {
+                Text("Weekly reviews", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                val maxRv = (stats.weeks.maxOfOrNull { it.reviews } ?: 0).coerceAtLeast(1)
+                Row(Modifier.fillMaxWidth().height(64.dp).padding(top = 8.dp),
+                    verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    stats.weeks.forEach { w ->
+                        Box(Modifier.weight(1f).fillMaxHeight((w.reviews.toFloat() / maxRv).coerceIn(0.03f, 1f))
+                            .background(Ledger.Stamp, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    stats.weeks.forEach { w ->
+                        Text(w.label, Modifier.weight(1f), fontSize = 8.sp, fontFamily = FontFamily.Monospace,
+                            color = Color(0xFF566077), textAlign = TextAlign.Center, maxLines = 1)
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("Weekly accuracy", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+                Row(Modifier.fillMaxWidth().height(48.dp).padding(top = 8.dp),
+                    verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    stats.weeks.forEach { w ->
+                        val h = if (w.reviews == 0) 0.03f else w.accuracy.coerceIn(0.03f, 1f)
+                        Box(Modifier.weight(1f).fillMaxHeight(h)
+                            .background(Ledger.Green, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+                    }
+                }
+            }
+        } else {
+            PaperCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Insights \u2014 heatmap and weekly trends", fontSize = 15.sp,
+                        fontFamily = FontFamily.Serif, color = Color(0xFF111726), modifier = Modifier.weight(1f))
+                    Chip("PRO", Ledger.Brass)
+                }
+                Text("The 16-week study heatmap and weekly review/accuracy charts are part of Lexicon Pro \u2014 unlock in Settings.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp,
+                    modifier = Modifier.padding(top = 4.dp))
             }
         }
         Spacer(Modifier.height(10.dp))
 
-        // weekly reviews + accuracy
+        // stubborn words (leeches)
         PaperCard {
-            Text("Weekly reviews", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
-            val maxRv = (stats.weeks.maxOfOrNull { it.reviews } ?: 0).coerceAtLeast(1)
-            Row(Modifier.fillMaxWidth().height(64.dp).padding(top = 8.dp),
-                verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                stats.weeks.forEach { w ->
-                    Box(Modifier.weight(1f).fillMaxHeight((w.reviews.toFloat() / maxRv).coerceIn(0.03f, 1f))
-                        .background(Ledger.Stamp, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+            val byId = remember(ui.words) { ui.words.associateBy { it.id } }
+            Text("Stubborn words", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            if (ui.leeches.isEmpty()) {
+                Text("None yet \u2014 nicely done. Words you repeatedly miss will collect here.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
+            } else {
+                Text("Words you keep missing. Run the \u201CStubborn words\u201D drill on the home tab to hammer them with hints.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
+                Spacer(Modifier.height(6.dp))
+                ui.leeches.take(8).forEach { ls ->
+                    val w = byId[ls.wordId]
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(w?.word ?: "#${ls.wordId}", fontSize = 14.sp, fontFamily = FontFamily.Serif,
+                            color = Color(0xFF111726), modifier = Modifier.weight(1f))
+                        Text("${ls.fails} fails / ${ls.reviews}", fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace, color = Ledger.Stamp)
+                    }
                 }
-            }
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                stats.weeks.forEach { w ->
-                    Text(w.label, Modifier.weight(1f), fontSize = 8.sp, fontFamily = FontFamily.Monospace,
-                        color = Color(0xFF566077), textAlign = TextAlign.Center, maxLines = 1)
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            Text("Weekly accuracy", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
-            Row(Modifier.fillMaxWidth().height(48.dp).padding(top = 8.dp),
-                verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                stats.weeks.forEach { w ->
-                    val h = if (w.reviews == 0) 0.03f else w.accuracy.coerceIn(0.03f, 1f)
-                    Box(Modifier.weight(1f).fillMaxHeight(h)
-                        .background(Ledger.Green, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+                if (ui.leeches.size > 8) {
+                    Text("+${ui.leeches.size - 8} more", fontSize = 11.sp, fontFamily = FontFamily.Monospace,
+                        color = Color(0xFF566077), modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }
@@ -436,7 +487,7 @@ fun WritingScreen(vm: AppViewModel) {
                 color = if (wc >= 250) Ledger.Green else Color(0xFF566077), modifier = Modifier.padding(top = 4.dp))
         }
 
-        if (item.hasSamples) {
+        if (item.hasSamples && (ui.isPro || item.id <= 10)) {
             Spacer(Modifier.height(10.dp))
             PaperCard {
                 Row(Modifier.fillMaxWidth().clickable { showSamples = !showSamples },
@@ -461,6 +512,18 @@ fun WritingScreen(vm: AppViewModel) {
                         }
                     }
                 }
+            }
+        } else if (item.hasSamples) {
+            Spacer(Modifier.height(10.dp))
+            PaperCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Model answers \u2014 band 6 vs band 8", fontSize = 14.sp, fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold, color = Color(0xFF111726), modifier = Modifier.weight(1f))
+                    Chip("PRO", Ledger.Brass)
+                }
+                Text("This prompt\u2019s full band 6 vs band 8 models and \u201Cwhat lifts a 6 to an 8\u201D breakdown are part of Lexicon Pro. Ten prompts include free models \u2014 unlock Pro in Settings for all 100.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp,
+                    modifier = Modifier.padding(top = 4.dp))
             }
         } else {
             Spacer(Modifier.height(10.dp))
@@ -604,7 +667,7 @@ fun SettingsScreen(vm: AppViewModel) {
         Text("Settings", color = Ledger.Cream, fontSize = 23.sp, fontFamily = FontFamily.Serif)
         Spacer(Modifier.height(10.dp))
         PaperCard {
-            Text("IELTS exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
+            Text("Exam date", fontSize = 15.sp, fontFamily = FontFamily.Serif, color = Color(0xFF111726))
             Text("Drives the phase plan, intake, and tier weighting.", fontSize = 12.sp, color = Color(0xFF566077))
             OutlinedTextField(value = exam, onValueChange = { exam = it },
                 placeholder = { Text("YYYY-MM-DD", color = Color(0xFF566077)) },
@@ -643,9 +706,23 @@ fun SettingsScreen(vm: AppViewModel) {
             Text("Add these to your daily sessions. Off by default to keep IELTS focus; " +
                 "all of them stay searchable in the Registry regardless.",
                 fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
-            ToggleRow("BCS vocabulary (Tier 6)", ui.tier6) { vm.setTier6(it) }
-            ToggleRow("Bank-job prep (Tier 7)", ui.tier7) { vm.setTier7(it) }
-            ToggleRow("Academic / research (Tier 8)", ui.tier8) { vm.setTier8(it) }
+            if (ui.isPro) {
+                ToggleRow("BCS vocabulary (Tier 6)", ui.tier6) { vm.setTier6(it) }
+                ToggleRow("Bank-job prep (Tier 7)", ui.tier7) { vm.setTier7(it) }
+                ToggleRow("Academic / research (Tier 8)", ui.tier8) { vm.setTier8(it) }
+            } else {
+                listOf("BCS vocabulary (Tier 6)", "Bank-job prep (Tier 7)", "Academic / research (Tier 8)")
+                    .forEach { label ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text(label, fontSize = 14.sp, color = Color(0xFF8B93A6))
+                            Chip("PRO", Ledger.Brass)
+                        }
+                    }
+                Text("These tiers are part of Lexicon Pro \u2014 unlock above.",
+                    fontSize = 11.sp, color = Color(0xFF566077), modifier = Modifier.padding(top = 4.dp))
+            }
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
@@ -654,6 +731,37 @@ fun SettingsScreen(vm: AppViewModel) {
                 fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp)
             ToggleRow("Chime on every correct answer", ui.soundEveryCorrect) { vm.setSoundCorrect(it) }
             ToggleRow("Special chime on Precise answers", ui.soundPrecise) { vm.setSoundPrecise(it) }
+        }
+        Spacer(Modifier.height(10.dp))
+        PaperCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("\u2726", fontSize = 20.sp, color = Ledger.Brass)
+                Spacer(Modifier.width(8.dp))
+                Text("Lexicon Pro", fontSize = 15.sp, fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold, color = Color(0xFF111726))
+            }
+            if (ui.isPro) {
+                Text("Pro is active \u2014 ads removed and everything unlocked. Thank you for supporting Lexicon.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp,
+                    modifier = Modifier.padding(top = 4.dp))
+            } else {
+                Text("One payment, yours forever: removes all ads and unlocks every tier, the full band 6 vs 8 writing library, insights and the home-screen widget.",
+                    fontSize = 12.sp, color = Color(0xFF566077), lineHeight = 17.sp,
+                    modifier = Modifier.padding(top = 4.dp))
+                val buyCtx = LocalContext.current
+                var buyStatus by remember { mutableStateOf<String?>(null) }
+                Button(onClick = {
+                    vm.billing.onStatus = { msg -> buyStatus = msg }
+                    (buyCtx as? android.app.Activity)?.let { vm.billing.buy(it) }
+                }, modifier = Modifier.padding(top = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) {
+                    Text("Unlock Pro")
+                }
+                buyStatus?.let {
+                    Text(it, fontSize = 11.sp, color = Ledger.Stamp,
+                        modifier = Modifier.padding(top = 6.dp))
+                }
+            }
         }
         Spacer(Modifier.height(10.dp))
         PaperCard {
@@ -689,7 +797,7 @@ fun SettingsScreen(vm: AppViewModel) {
                 "Move it to a new phone and import to continue exactly where you left off.",
                 fontSize = 12.5.sp, color = Color(0xFF566077), lineHeight = 18.sp)
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { exportLauncher.launch("tahsincabs_backup.json") },
+                Button(onClick = { exportLauncher.launch("lexicon_backup.json") },
                     colors = ButtonDefaults.buttonColors(containerColor = Ledger.Stamp)) { Text("Export") }
                 Button(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                     colors = ButtonDefaults.buttonColors(containerColor = Ledger.Green)) { Text("Import") }

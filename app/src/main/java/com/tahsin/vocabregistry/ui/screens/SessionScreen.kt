@@ -13,7 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import android.app.Activity
+import com.tahsin.vocabregistry.ads.Ads
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -52,10 +55,12 @@ fun SessionScreen(vm: AppViewModel, mode: SessionMode, onClose: () -> Unit) {
     val speak = rememberSpeaker()
     val sounds = rememberSounds()
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     fun finish() {
         val avgQ = if (done > 0) qSum.toDouble() / done else 0.0
         vm.finishSession(HeroXp.forSession(done, avgQ))
+        (context as? Activity)?.let { Ads.onSessionFinished(it, ui.isPro) }
         onClose()
     }
 

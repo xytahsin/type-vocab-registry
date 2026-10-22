@@ -36,6 +36,8 @@ fun Root(vm: AppViewModel) {
         when {
             ui.loading -> StarryLoader()
 
+            !ui.onboarded && !ui.calibrated -> OnboardingScreen(vm)
+
             !ui.calibrated -> CalibrationScreen(vm)
 
             else -> {

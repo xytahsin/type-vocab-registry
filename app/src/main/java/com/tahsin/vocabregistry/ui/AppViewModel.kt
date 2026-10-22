@@ -3,6 +3,8 @@ package com.tahsin.vocabregistry.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.tahsin.vocabregistry.BuildConfig
+import com.tahsin.vocabregistry.billing.BillingManager
 import com.tahsin.vocabregistry.data.Keys
 import com.tahsin.vocabregistry.data.VocabRepository
 import com.tahsin.vocabregistry.data.model.*
@@ -23,7 +25,7 @@ data class UiSnapshot(
     val dueCount: Int = 0,
     val band: Double = 4.0,
     val streak: Int = 0, val longest: Int = 0, val freezes: Int = 2,
-    val examDate: String = "2027-02-15",
+    val examDate: String = LocalDate.now().plusDays(180).toString(),
     val daysToExam: Long = 0,
     val proficiency: ProficiencySnapshot =
         ProficiencySnapshot(ProficiencyLevel.DEVELOPING, 0.0, 0.0, 0.0, false),
@@ -55,6 +57,10 @@ data class UiSnapshot(
     val comeback: Boolean = false,
     val reminderOn: Boolean = true,
     val reminderHour: Int = 19,
+    val leeches: List<LeechStat> = emptyList(),
+    val onboarded: Boolean = false,
+    val examType: String = "IELTS",
+    val isPro: Boolean = false,
 )
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -62,10 +68,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var keyCache: String? = null
     val grader = Grader { keyCache }
 
+    /** Google Play Billing for the one-time Pro unlock; restores on every launch. */
+    val billing = BillingManager(app) { setPro() }
+
     private val _ui = MutableStateFlow(UiSnapshot())
     val ui = _ui.asStateFlow()
 
-    init { refresh() }
+    init { refresh(); billing.start() }
 
     fun refresh() = viewModelScope.launch {
         repo.seedIfNeeded()
@@ -75,13 +84,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val words = repo.db.words().all()
         val axes = repo.axesMap()
         val now = System.currentTimeMillis()
-        val exam = p[Keys.EXAM_DATE] ?: "2027-02-15"
+        val exam = p[Keys.EXAM_DATE] ?: LocalDate.now().plusDays(180).toString()
         val mastered = axes.count { (_, m) ->
             Axis.entries.all { k -> m[k]?.status == AxisStatus.MASTERED }
         }
         val startToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
             .toInstant().toEpochMilli()
-        val reviewsToday = repo.db.logs().recent(1500).count { it.epoch >= startToday }
+        val recentLogs = repo.db.logs().recent(2000)
+        val reviewsToday = recentLogs.count { it.epoch >= startToday }
+        val leeches = Leeches.detect(recentLogs).filter { ls ->
+            val m = axes[ls.wordId]
+            m == null || !Axis.entries.all { k -> m[k]?.status == AxisStatus.MASTERED }
+        }
 
         // ---- gamification computations ----
         val today = LocalDate.now().toString()
@@ -156,6 +170,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             comeback = p2[Keys.COMEBACK] ?: false,
             reminderOn = p2[Keys.REMINDER_ON] ?: true,
             reminderHour = p2[Keys.REMINDER_HOUR] ?: 19,
+            leeches = leeches,
+            onboarded = p2[Keys.ONBOARDED] ?: false,
+            examType = p2[Keys.EXAM_TYPE] ?: "IELTS",
+            // Debug (sideloaded) builds are always Pro; the paywall exists only in
+            // the Play release build.
+            isPro = (p2[Keys.PRO] ?: false) || BuildConfig.DEBUG,
         )
         // keep the home-screen widget in sync with the values we just computed
         val bandStr = if (band > 0.0) "%.1f".format(band) else "\u2014"
@@ -166,6 +186,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun composeSession(mode: SessionMode): List<SessionCard> {
         val s = _ui.value
+        if (mode == SessionMode.LEECH) {
+            return SessionComposer.composeLeechDrill(s.leeches.map { it.wordId }, s.words)
+        }
         return SessionComposer.compose(
             mode, s.words, s.axes, System.currentTimeMillis(),
             s.daysToExam.toDouble(), s.proficiency.level, s.newToday,
@@ -255,6 +278,34 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setExamDate(d: String) = viewModelScope.launch { repo.edit { it[Keys.EXAM_DATE] = d }; refresh() }
     fun setAcademic(b: Boolean) = viewModelScope.launch { repo.edit { it[Keys.ACADEMIC] = b }; refresh() }
+    /** Grants Pro (from billing), persists it, and enables the tier the user chose at onboarding. */
+    fun setPro() = viewModelScope.launch {
+        repo.edit {
+            it[Keys.PRO] = true
+            when (it[Keys.EXAM_TYPE]) {
+                "BCS" -> it[Keys.TIER6] = true
+                "Bank" -> it[Keys.TIER7] = true
+                "Research" -> it[Keys.TIER8] = true
+            }
+        }
+        refresh()
+    }
+
+    /** First-run setup: exam focus + target date. Pro (or debug) also enables the matching tier;
+     *  free users keep their choice recorded, and setPro() enables it if they later unlock. */
+    fun completeOnboarding(examType: String, months: Int) = viewModelScope.launch {
+        val pro = (repo.prefs()[Keys.PRO] ?: false) || BuildConfig.DEBUG
+        repo.edit {
+            it[Keys.EXAM_TYPE] = examType
+            it[Keys.EXAM_DATE] = LocalDate.now().plusMonths(months.toLong()).toString()
+            it[Keys.TIER6] = pro && examType == "BCS"
+            it[Keys.TIER7] = pro && examType == "Bank"
+            it[Keys.TIER8] = pro && examType == "Research"
+            it[Keys.ONBOARDED] = true
+        }
+        refresh()
+    }
+
     fun setReminder(on: Boolean, hour: Int) = viewModelScope.launch {
         repo.edit { it[Keys.REMINDER_ON] = on; it[Keys.REMINDER_HOUR] = hour }
         com.tahsin.vocabregistry.notify.Reminders.sync(getApplication())

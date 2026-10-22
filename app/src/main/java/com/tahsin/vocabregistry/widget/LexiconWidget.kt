@@ -18,6 +18,7 @@ class LexiconWidget : AppWidgetProvider() {
 
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
         val prefs = runBlocking { VocabRepository.get(ctx).prefs() }
+        val pro = (prefs[Keys.PRO] ?: false) || com.tahsin.vocabregistry.BuildConfig.DEBUG
         val due = prefs[Keys.WIDGET_DUE] ?: 0
         val streak = prefs[Keys.WIDGET_STREAK] ?: 0
         val band = prefs[Keys.WIDGET_BAND] ?: "\u2014"
@@ -25,10 +26,17 @@ class LexiconWidget : AppWidgetProvider() {
 
         for (id in ids) {
             val views = RemoteViews(ctx.packageName, R.layout.lexicon_widget).apply {
-                setTextViewText(R.id.w_due, if (due == 1) "1 card due" else "$due cards due")
-                setTextViewText(R.id.w_band, "Band $band")
-                setTextViewText(R.id.w_streak, "$streak\u2011day streak")
-                setTextViewText(R.id.w_wotd, "Word: $wotd")
+                if (pro) {
+                    setTextViewText(R.id.w_due, if (due == 1) "1 card due" else "$due cards due")
+                    setTextViewText(R.id.w_band, "Band $band")
+                    setTextViewText(R.id.w_streak, "$streak\u2011day streak")
+                    setTextViewText(R.id.w_wotd, "Word: $wotd")
+                } else {
+                    setTextViewText(R.id.w_due, "Pro feature")
+                    setTextViewText(R.id.w_band, "Unlock Lexicon Pro")
+                    setTextViewText(R.id.w_streak, "to activate this widget")
+                    setTextViewText(R.id.w_wotd, "Settings \u2192 Lexicon Pro")
+                }
                 setOnClickPendingIntent(R.id.w_root, openAppIntent(ctx))
             }
             mgr.updateAppWidget(id, views)

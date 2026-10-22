@@ -4,7 +4,7 @@ import com.tahsin.vocabregistry.data.model.*
 import kotlin.math.ceil
 import kotlin.math.max
 
-enum class SessionMode(val budget: Int) { SPRINT(12), DEEP(30), COMMUTE(20) }
+enum class SessionMode(val budget: Int) { SPRINT(12), DEEP(30), COMMUTE(20), LEECH(15) }
 enum class CardKind { DUE, NEW, WEAK }
 data class SessionCard(val wordId: Int, val axis: Axis, val kind: CardKind, val meetFirst: Boolean = false)
 
@@ -45,6 +45,32 @@ object SessionComposer {
         if (bank) tiers += 7
         if (scholar) tiers += 8
         return tiers
+    }
+
+    /**
+     * A focused drill built only from the given leech word ids — ignores due dates and
+     * shows each word up front (meetFirst) as scaffolding before testing production, then
+     * recognition if budget remains.
+     */
+    fun composeLeechDrill(
+        leechIds: List<Int>,
+        words: List<Word>,
+        budget: Int = SessionMode.LEECH.budget,
+    ): List<SessionCard> {
+        val byId = words.associateBy { it.id }
+        val cards = mutableListOf<SessionCard>()
+        for (id in leechIds) {
+            if (cards.size >= budget) break
+            if (byId[id] == null) continue
+            cards += SessionCard(id, Axis.P, CardKind.WEAK, meetFirst = true)
+        }
+        var i = 0
+        while (cards.size < budget && i < leechIds.size) {
+            val id = leechIds[i]; i++
+            if (byId[id] == null) continue
+            cards += SessionCard(id, Axis.R, CardKind.WEAK, meetFirst = false)
+        }
+        return cards
     }
 
     fun compose(
