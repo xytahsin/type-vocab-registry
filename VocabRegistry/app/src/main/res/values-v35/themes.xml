@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.VocabRegistry" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0C1838</item>
+        <item name="android:windowBackground">#0C1838</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+</resources>
